@@ -1,0 +1,95 @@
+#map {
+  height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+.sensor_card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* center horizontally and vertically */
+  background-color: #ffffff;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+
+  /* display: none; */
+  /* initially hidden */
+  width: 300px;
+  font-family: Arial, sans-serif;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+/* Card header */
+.sensor_card h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+  color: #333;
+  font-size: 20px;
+}
+
+/* Labels and inputs */
+.sensor_card label {
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #555;
+  display: block;
+}
+
+.sensor_card input[type="text"],
+.sensor_card input[type="date"],
+.sensor_card select {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+/* Checkbox styling */
+.sensor_card input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Submit button */
+.sensor_card input[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 16px;
+  /* transition: background 0.3s ease; */
+}
+
+.sensor_card input[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+/* Optional: close button */
+.sensor_card .close-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 18px;
+  color: #888;
+}
+
+.sensor_card .close-btn:hover {
+  color: #333;
+}
+
+.leaflet-control {
+  margin: 0 !important;
+}

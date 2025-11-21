@@ -11,28 +11,51 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
     />
 
-    <style>
-      #map {
-        height: 80vh;
-        width: 80%;
-      }
-    </style>
+    <style></style>
   </head>
   <body>
     <div id="map"></div>
-    <div
-      style="
-        width: 200px;
-        height: 200px;
-        border: 1px solid black;
-        cursor: url('test.png') 16 16, auto;
-      "
-    >
-      Hover over me
-    </div>
+    <form action="#" class="sensor_card" id="sensorCard">
+      <span
+        class="close-btn"
+        onclick="document.getElementById('sensorCard').style.display='none'"
+        >&times;</span
+      >
+      <h3>Sensor Information</h3>
+
+      <label for="sensorId">Sensor ID:</label>
+      <input type="text" id="sensorId" name="sensorId" />
+
+      <label for="sensorType">Sensor Type:</label>
+      <select id="sensorType" name="sensorType">
+        <option value="">Select Sensor Type</option>
+        <option value="7in1">7 in 1</option>
+        <option value="5in1">5 in 1</option>
+        <option value="3in1">3 in 1</option>
+      </select>
+
+      <label>Latitude:</label>
+      <input type="text" id="sensorLat" name="sensorLat" readonly />
+
+      <label>Longitude:</label>
+      <input type="text" id="sensorLng" name="sensorLng" readonly />
+
+      <label>
+        <input type="checkbox" id="useTodayDate" />
+        Get Today's Date
+      </label>
+
+      <label for="installationDate">Installation Date:</label>
+      <input type="date" id="installationDate" name="installationDate" />
+
+      <input type="submit" value="Submit" />
+    </form>
+    <script src="Data.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="buttonControls.js"></script>
     <script src="script.js"></script>
+    <script src="toolbarbuttons.js"></script>
+    <script src="Polygon.js"></script>
   </body>
 </html>
