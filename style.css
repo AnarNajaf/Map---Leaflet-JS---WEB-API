@@ -4,7 +4,7 @@
   position: relative;
 }
 
-.sensor_card {
+.info_card {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -15,16 +15,18 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   z-index: 1000;
 
-  /* display: none; */
   /* initially hidden */
   width: 300px;
   font-family: Arial, sans-serif;
   flex-direction: column;
   transition: all 0.3s ease;
 }
+#sensorCard {
+  display: none;
+}
 
 /* Card header */
-.sensor_card h3 {
+.info_card h3 {
   margin-top: 0;
   margin-bottom: 15px;
   text-align: center;
@@ -33,16 +35,16 @@
 }
 
 /* Labels and inputs */
-.sensor_card label {
+.info_card label {
   font-weight: 500;
   margin-bottom: 5px;
   color: #555;
   display: block;
 }
 
-.sensor_card input[type="text"],
-.sensor_card input[type="date"],
-.sensor_card select {
+.info_card input[type="text"],
+.info_card input[type="date"],
+.info_card select {
   width: 100%;
   padding: 8px 10px;
   margin-bottom: 15px;
@@ -53,12 +55,12 @@
 }
 
 /* Checkbox styling */
-.sensor_card input[type="checkbox"] {
+.info_card input[type="checkbox"] {
   margin-right: 5px;
 }
 
 /* Submit button */
-.sensor_card input[type="submit"] {
+.info_card input[type="submit"] {
   width: 100%;
   padding: 10px;
   background-color: #4caf50;
@@ -71,12 +73,12 @@
   /* transition: background 0.3s ease; */
 }
 
-.sensor_card input[type="submit"]:hover {
+.info_card input[type="submit"]:hover {
   background-color: #45a049;
 }
 
 /* Optional: close button */
-.sensor_card .close-btn {
+.info_card .close-btn {
   position: absolute;
   top: 8px;
   right: 10px;
@@ -86,7 +88,7 @@
   color: #888;
 }
 
-.sensor_card .close-btn:hover {
+.info_card .close-btn:hover {
   color: #333;
 }
 

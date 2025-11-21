@@ -15,7 +15,7 @@
   </head>
   <body>
     <div id="map"></div>
-    <form action="#" class="sensor_card" id="sensorCard">
+    <form action="#" class="info_card" id="sensorCard">
       <span
         class="close-btn"
         onclick="document.getElementById('sensorCard').style.display='none'"
@@ -48,8 +48,9 @@
       <label for="installationDate">Installation Date:</label>
       <input type="date" id="installationDate" name="installationDate" />
 
-      <input type="submit" value="Submit" />
+      <button type="button" id="submitBtn">Submit</button>
     </form>
+
     <script src="Data.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>

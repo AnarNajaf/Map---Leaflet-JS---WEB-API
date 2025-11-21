@@ -14,6 +14,15 @@ document.getElementById("useTodayDate").addEventListener("change", function () {
   }
 });
 
+const sensorCard = document.getElementById("sensorCard");
+const sensorID = document.getElementById("sensorId");
+const sensorType = document.getElementById("sensorType");
+const sensorLat = document.getElementById("sensorLat");
+const sensorLng = document.getElementById("sensorLng");
+const installationDate = document.getElementById("installationDate");
+const useTodayDate = document.getElementById("useTodayDate");
+const submitBtn = document.getElementById("submitBtn");
+
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape") {
     resetToolSelection();
@@ -36,6 +45,10 @@ const sensorIcon = L.icon({
   iconSize: [32, 32],
   iconAnchor: [16, 16],
 });
+
+
+
+
 function resetToolSelection() {
   selectedTool = null;
   colorMode = false;
@@ -67,24 +80,29 @@ function Location() {
     alert("Geolocation is not supported by this browser.");
   }
 }
+var OpenSensorInformationForm = (lat, lng) => {
+  sensorCard.style.display = "block";
+  sensorLat.value = lat;
+  sensorLng.value = lng;
+  submitBtn.onclick = () => {
+    sensorCard.style.display = "none";
+  };
+};
 
 function Sensor() {
   if (!isPlacingSensor) {
     isPlacingSensor = true;
     map.getContainer().style.cursor =
-      "url('../images/alternative_sensor.png') 20 20, auto"; // same folder
+      "url('../images/alternative_sensor.png') 20 20, auto";
     map.on("click", function (e) {
       if (!isPlacingSensor) return;
-
-      if (confirm("Place sensor here?")) {
-        L.marker([e.latlng.lat, e.latlng.lng], { icon: sensorIcon })
-          .addTo(map)
-          .bindPopup("Sensor placed!")
-          .openPopup();
-
-        map.getContainer().style.cursor = "";
-        isPlacingSensor = false;
-      }
+      L.marker([e.latlng.lat, e.latlng.lng], { icon: sensorIcon })
+        .addTo(map)
+        .bindPopup("Sensor placed!")
+        .openPopup();
+      OpenSensorInformationForm(e.latlng.lat, e.latlng.lng);
+      map.getContainer().style.cursor = "";
+      isPlacingSensor = false;
     });
   } else {
     map.getContainer().style.cursor = "";
@@ -121,4 +139,3 @@ function createMapButton(options) {
     return new L.Control.GenericBtn(opts);
   };
 }
-
