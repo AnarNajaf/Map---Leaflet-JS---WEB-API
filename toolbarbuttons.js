@@ -48,10 +48,3 @@ const ColorBtn = createMapButton({
 L.control.colorBtn = ColorBtn;
 L.control.colorBtn({ position: "topright" }).addTo(map);
 
-const deleteBtn = createMapButton({
-  className: "delete-btn",
-  imgSrc: "../images/delete.png",
-  onClick: () => alert("Delete button clicked!"),
-});
-L.control.deleteBtn = deleteBtn;
-L.control.deleteBtn({ position: "topright" }).addTo(map);

@@ -20,15 +20,37 @@ var drawControl = new L.Control.Draw({
   },
   edit: {
     featureGroup: drawnItems,
+    remove: true 
   },
 });
 map.addControl(drawControl);
+map.on("draw:deleted", async function (event) {
+    event.layers.eachLayer(async function (layer) {
+
+        if (!layer.farmId) {
+            console.warn("No farmId attached to layer.");
+            return;
+        }
+
+        try {
+            await fetch(`http://localhost:5212/api/farm/${layer.farmId}`, {
+                method: "DELETE"
+            });
+
+            console.log("Deleted farm:", layer.farmId);
+
+        } catch (err) {
+            console.error("Delete failed:", err);
+        }
+    });
+});
+
 map.on(L.Draw.Event.CREATED, async function (event) {
     var layer = event.layer;
 
     if (event.layerType === "polygon") {
         const latlngs = layer.getLatLngs()[0];
-        const coords = latlngs.map((p) => [p.lat, p.lng]);
+        const coords = latlngs.map(p => [p.lat, p.lng]);
 
         const farmData = {
             name: `Farm ${Date.now()}`,
@@ -45,45 +67,18 @@ map.on(L.Draw.Event.CREATED, async function (event) {
                 body: JSON.stringify(farmData)
             });
 
-            if (!response.ok) {
-                console.error("Server error:", await response.text());
-                alert("❌ Failed to save farm!");
-                return;
-            }
+            if (!response.ok) return alert("Failed to save!");
 
             const result = await response.json();
-            console.log("Farm saved! ID:", result.id);
-        }
-        catch (err) {
+            console.log("Saved farm:", result);
+
+            // 🔥 Attach farm ID to the polygon layer
+            layer.farmId = result.id;
+
+        } catch (err) {
             console.error("Fetch failed:", err);
-            alert("❌ Cannot connect to server");
         }
     }
 
     drawnItems.addLayer(layer);
 });
-async function loadFarmsFromDB() {
-    try {
-        const response = await fetch("http://localhost:5212/api/farm");
-        const farms = await response.json();
-
-        farms.forEach(farm => {
-            if (!farm.polygon || farm.polygon.length === 0) return;
-
-            // Convert [[lat, lng], [lat, lng]] to Leaflet LatLng objects
-            const latlngs = farm.polygon.map(p => L.latLng(p[0], p[1]));
-
-            // Draw polygon
-            const polygon = L.polygon(latlngs, {
-                color: farm.color || "green",
-                weight: 2
-            }).addTo(map);
-
-            polygon.bindPopup(`<b>${farm.name}</b><br>ID: ${farm.id}`);
-        });
-
-        console.log("Loaded farms:", farms);
-    } catch (err) {
-        console.error("Error loading farms:", err);
-    }
-}
