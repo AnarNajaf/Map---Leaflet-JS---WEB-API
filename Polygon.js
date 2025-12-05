@@ -1,9 +1,7 @@
-// Drawing and Saving Polygonsd
 let polygons = [];
 let polygonList = [];
 var drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
-
 var drawControl = new L.Control.Draw({
   position: "topright",
   draw: {
@@ -53,7 +51,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         const coords = latlngs.map(p => [p.lat, p.lng]);
 
         const farmData = {
-            name: `Farm ${Date.now()}`,
+            name: `Farm ${Date.now().toFixed()}`,
             color: "#FF0000",
             responsiblePerson: "Default User",
             farmType: "None",
@@ -72,12 +70,13 @@ map.on(L.Draw.Event.CREATED, async function (event) {
             const result = await response.json();
             console.log("Saved farm:", result);
 
-            // 🔥 Attach farm ID to the polygon layer
             layer.farmId = result.id;
+            attachPolygonClick(layer, result.id);
 
         } catch (err) {
             console.error("Fetch failed:", err);
         }
+        
     }
 
     drawnItems.addLayer(layer);

@@ -47,4 +47,3 @@ const ColorBtn = createMapButton({
 });
 L.control.colorBtn = ColorBtn;
 L.control.colorBtn({ position: "topright" }).addTo(map);
-

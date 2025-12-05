@@ -14,6 +14,17 @@ document.getElementById("useTodayDate").addEventListener("change", function () {
   }
 });
 
+// Motor form
+document.getElementById("useTodayDateMotor").addEventListener("change", function () {
+  const dateInput = document.getElementById("installationDateMotor");
+  if (this.checked) {
+    const today = new Date().toISOString().split("T")[0];
+    dateInput.value = today;
+  } else {
+    dateInput.value = "";
+  }
+});
+
 const sensorCard = document.getElementById("sensorCard");
 const sensorID = document.getElementById("sensorId");
 const sensorType = document.getElementById("sensorType");
@@ -43,51 +54,16 @@ L.tileLayer(
     attribution: "Tiles © Esri",
   }
 ).addTo(map);
-async function loadFarmsFromDB() {
-    try {
-        const response = await fetch("http://localhost:5212/api/farm");
-        const farms = await response.json();
-
-        farms.forEach(farm => {
-            if (!farm.polygon || farm.polygon.length === 0) return;
-
-            const latlngs = farm.polygon.map(p => L.latLng(p[0], p[1]));
-
-            const polygon = L.polygon(latlngs, {
-                color: farm.color || "green",
-                weight: 2
-            });
-
-            polygon.farmId = farm.id;
-
-            drawnItems.addLayer(polygon);
-
-            polygon.bindPopup(`<b>${farm.name}</b><br>ID: ${farm.id}`);
-        });
-
-        console.log("Loaded farms:", farms);
-    } catch (err) {
-        console.error("Error loading farms:", err);
-    }
-}
 
 loadFarmsFromDB();
-
+loadSensorsFromDB();
+loadMotorsFromDB();
 let userMarker = null;
 let selectedTool = null;
 var isPlacingSensor = false;
 var isPlacingMotor = false;
 
-const sensorIcon = L.icon({
-  iconUrl: "../images/sensor.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-});
-const motorIcon = L.icon({
-  iconUrl: "../images/motor.png",
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-});
+
 function resetToolSelection() {
   selectedTool = null;
   colorMode = false;
@@ -102,10 +78,8 @@ function Location() {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        // Center map on user
         map.setView([lat, lng], 16);
 
-        // Add or update marker
         if (!userMarker) {
           userMarker = L.marker([lat, lng]);
         } else {
@@ -119,22 +93,85 @@ function Location() {
     alert("Geolocation is not supported by this browser.");
   }
 }
-var OpenSensorInformationForm = (lat, lng) => {
+
+
+
+var OpenSensorInformationForm = (latt, lngg) => {
   sensorCard.style.display = "block";
-  sensorLat.value = lat;
-  sensorLng.value = lng;
-  submitBtn.onclick = () => {
+  sensorLat.value = latt;
+  sensorLng.value = lngg;
+  submitBtn.onclick = async () => {
+    let dateValue = installationDate.value; // "2025-12-04"
+    const isoDate = new Date(dateValue + "T00:00:00").toISOString();
+    const sensorData = {
+        sensorId: sensorID.value,
+        type: sensorType.value,
+        lat: latt,
+        lng: lngg,
+        installationDate: isoDate,
+        farmId: selectedFarmId,
+    };
+
+    console.log("Sending sensor:", sensorData);
+
+    await saveSensor(sensorData);
     sensorCard.style.display = "none";
   };
 };
-var OpenMotorInformationForm = (lat, lng) => {
+
+async function saveSensor(sensorData) {
+    try {
+        const response = await fetch("http://localhost:5212/api/sensor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(sensorData)
+        });
+
+        if (!response.ok) throw new Error("Failed to save");
+
+        alert("Sensor saved successfully!");
+    } catch (err) {
+        console.error("Error saving sensor:", err);
+        alert("Error saving sensor");
+    }
+}
+
+var OpenMotorInformationForm = (latt, lngg) => {
   motorCard.style.display = "block";
-  motorLat.value = lat;
-  motorLng.value = lng;
-  motorSubmitBtn.onclick = () => {
+  motorLat.value = latt;
+  motorLng.value = lngg;
+  motorSubmitBtn.onclick = async() => {
+    const motorData = {
+      motorId: motorID.value,
+      type: motorType.value,
+      lat: latt,
+      lng: lngg,
+      farmId: selectedFarmId,
+    };
+    console.log("Sending motor:", motorData);
+
+    await saveMotor(motorData);
+
     motorCard.style.display = "none";
   };
 };
+async function saveMotor(motorData) {
+    try {
+        const response = await fetch("http://localhost:5212/api/motor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(motorData)
+        });
+        if (!response.ok) throw new Error("Failed to save");
+
+        alert("Motor saved successfully!");
+    }
+    catch (err) {
+        console.error("Error saving motor:", err);
+        alert("Error saving motor");
+    }
+}
+
 function Sensor() {
   if (!isPlacingSensor) {
     isPlacingSensor = true;
