@@ -4,7 +4,7 @@ const CursorBtn = createMapButton({
   className: "cursor-btn",
   imgSrc:
     "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/cursor.png",
-  onClick: () => alert("Cursor button clicked!"),
+  onClick: Cursor,
 });
 L.control.cursorBtn = CursorBtn;
 L.control.cursorBtn({ position: "topright" }).addTo(map);
@@ -15,7 +15,7 @@ const LocateBtn = createMapButton({
   className: "locate-btn",
   imgSrc:
     "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/location.png",
-  onClick: Location,
+  onClick: LocationFunction,
 });
 L.control.locateBtn = LocateBtn;
 L.control.locateBtn({ position: "bottomright" }).addTo(map);
