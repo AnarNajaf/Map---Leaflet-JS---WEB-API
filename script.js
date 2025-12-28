@@ -1,4 +1,9 @@
-var map = L.map("map").setView([40.505, 49], 13);
+var map = L.map("map", {
+  center: [40.505, 49],
+  zoom: 16,
+  maxZoom: 18,
+  minZoom: 10,
+});
 // L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 //   attribution:
 //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -67,6 +72,7 @@ let userMarker = null;
 let selectedTool = null;
 var isPlacingSensor = false;
 var isPlacingMotor = false;
+let isColoring = false;
 
 function resetToolSelection() {
   selectedTool = null;
@@ -139,8 +145,29 @@ var OpenSensorInformationForm = (latt, lngg) => {
     await saveSensor(sensorData);
     sensorCard.style.display = "none";
     hideMapMessage();
-    location.reload();
+    ////location.reload();
   };
+};
+var ColorPickerFunction = () => {
+  const colorInput = document.createElement("input");
+  colorInput.type = "color";
+  colorInput.value = "#ff0000";
+  colorInput.style.position = "absolute";
+  colorInput.style.left = "500px";
+  document.body.appendChild(colorInput);
+  showMapMessage("🎨 Click on a polygon to color it.");
+  colorInput.addEventListener("input", (e) => {
+    selectedColor = e.target.value;
+    isColoring = true;
+    map.getContainer().style.cursor =
+      "url('https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/color.png'), auto";
+  });
+
+  colorInput.addEventListener("change", () => {
+    document.body.removeChild(colorInput);
+  });
+
+  colorInput.click();
 };
 
 async function saveSensor(sensorData) {
@@ -183,7 +210,7 @@ var OpenMotorInformationForm = (latt, lngg) => {
 
     motorCard.style.display = "none";
     hideMapMessage();
-    location.reload();
+    //location.reload();
   };
 };
 async function saveMotor(motorData) {
@@ -201,20 +228,24 @@ async function saveMotor(motorData) {
     alert("Error saving motor");
   }
 }
+//ToolBar Functions
+function placeSensor(latlng) {
+  L.marker([e.latlng.lat, e.latlng.lng], { icon: sensorIcon })
+    .addTo(map)
+    .bindPopup("Sensor placed!")
+    .openPopup();
+
+  OpenSensorInformationForm(e.latlng.lat, e.latlng.lng);
+  hideMapMessage();
+}
 
 map.on("click", function (e) {
   if (isPlacingSensor) {
-    L.marker([e.latlng.lat, e.latlng.lng], { icon: sensorIcon })
-      .addTo(map)
-      .bindPopup("Sensor placed!")
-      .openPopup();
-
-    OpenSensorInformationForm(e.latlng.lat, e.latlng.lng);
-    // no resetToolSelection here, so form stays open
-    hideMapMessage();
+    placeSensor(e.latlng);
     return;
   }
 
+  // 2️⃣ Motor placement
   if (isPlacingMotor) {
     L.marker([e.latlng.lat, e.latlng.lng], { icon: motorIcon })
       .addTo(map)
@@ -222,11 +253,38 @@ map.on("click", function (e) {
       .openPopup();
 
     OpenMotorInformationForm(e.latlng.lat, e.latlng.lng);
-    // no resetToolSelection here
     hideMapMessage();
-
     return;
   }
+
+  // 3️⃣ Polygon coloring
+  if (isColoring && selectedColor) {
+    drawnItems.eachLayer((layer) => {
+      if (layer instanceof L.Polygon && layer.getBounds().contains(e.latlng)) {
+        layer.setStyle({ color: selectedColor });
+
+        // Optional: save to DB
+        if (layer.farmId) {
+          fetch(`http://localhost:5212/api/farm/${layer.farmId}/color`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ color: selectedColor }),
+          })
+            .then(() => console.log("Color updated:", layer.farmId))
+            .catch((err) => console.error("Color update failed:", err));
+        }
+      }
+    });
+
+    // Reset coloring mode
+    isColoring = false;
+    selectedColor = null;
+    map.getContainer().style.cursor = "";
+    return;
+  }
+
+  // 4️⃣ Other clicks (optional)
+  hideMapMessage();
 });
 
 function Sensor() {

@@ -1,12 +1,41 @@
 var selectedFarmId = null;
 let sensorMarkers = [];
 let motorMarkers = [];
+var selectedLayer = null;
+
+// Helper Functions
 function attachPolygonClick(layer, farmId) {
   layer.farmId = farmId;
   layer.on("click", function () {
     selectedFarmId = farmId;
+    selectedLayer = layer;
     console.log("Selected farm for sensor placement:", selectedFarmId);
   });
+}
+function showConfirm({ title, message, onConfirm }) {
+  const modal = document.getElementById("confirmModal");
+  const titleEl = document.getElementById("confirmTitle");
+  const messageEl = document.getElementById("confirmMessage");
+  const okBtn = document.getElementById("confirmOk");
+  const cancelBtn = document.getElementById("confirmCancel");
+
+  titleEl.innerText = title;
+  messageEl.innerText = message;
+
+  modal.classList.remove("hidden");
+
+  const close = () => {
+    modal.classList.add("hidden");
+    okBtn.onclick = null;
+    cancelBtn.onclick = null;
+  };
+
+  okBtn.onclick = () => {
+    close();
+    onConfirm();
+  };
+
+  cancelBtn.onclick = close;
 }
 
 async function loadFarmsFromDB() {
@@ -34,6 +63,14 @@ async function loadFarmsFromDB() {
   } catch (err) {
     console.error("Error loading farms:", err);
   }
+}
+function showActionMessage(message) {
+  const messageDiv = document.getElementById("actionMessage");
+  messageDiv.innerText = message;
+  messageDiv.classList.remove("hidden");
+  setTimeout(() => {
+    messageDiv.classList.add("hidden");
+  }, 3000);
 }
 
 async function loadSensorsFromDB() {
@@ -144,27 +181,42 @@ async function loadSensorsFromDB() {
   }
 }
 async function deleteSensor(sensorId) {
+  showConfirm({
+    title: "Delete Sensor",
+    message: "Are you sure you want to delete this sensor?",
+    onConfirm: () => performDeleteSensor(sensorId),
+  });
+}
+async function performDeleteSensor(sensorId) {
   try {
     const response = await fetch(
       `http://localhost:5212/api/sensor/${sensorId}`,
-      {
-        method: "DELETE",
-      }
+      { method: "DELETE" }
     );
+
     if (!response.ok) throw new Error("Delete failed");
-    // Remove marker from map and sensorMarkers array
+
+    // Remove marker from map
     const sensorObj = sensorMarkers.find((s) => s.id === sensorId);
     if (sensorObj) {
       map.removeLayer(sensorObj.marker);
       sensorMarkers = sensorMarkers.filter((s) => s.id !== sensorId);
     }
-    alert("Sensor deleted successfully!");
+
+    showActionMessage("Sensor deleted successfully!");
   } catch (err) {
     console.error("Error deleting sensor:", err);
-    alert("Error deleting sensor");
+    showActionMessage("Error deleting sensor ❌");
   }
 }
 async function deleteMotor(motorId) {
+  showConfirm({
+    title: "Delete Motor",
+    message: "Are you sure you want to delete this motor?",
+    onConfirm: () => performDeleteMotor(motorId),
+  });
+}
+async function performDeleteMotor(motorId) {
   try {
     const response = await fetch(`http://localhost:5212/api/motor/${motorId}`, {
       method: "DELETE",
@@ -176,15 +228,16 @@ async function deleteMotor(motorId) {
       map.removeLayer(motorObj.marker);
       motorMarkers = motorMarkers.filter((m) => m.id !== motorId);
     }
-    alert("Motor deleted successfully!");
+    showActionMessage("Motor deleted successfully!");
   } catch (err) {
     console.error("Error deleting motor:", err);
-    alert("Error deleting motor");
+    showActionMessage("Error deleting motor ❌");
   }
 }
 async function editSensor(sensorId) {
   const sensorObj = sensorMarkers.find((s) => s.id === sensorId);
   if (!sensorObj) return alert("Sensor not found");
+  sensorObj.marker.closePopup();
   const sensor = sensorObj.data;
   sensorCard.style.display = "block";
   sensorID.value = sensor.sensor_Id;
@@ -203,12 +256,13 @@ async function editSensor(sensorId) {
     console.log("Updating sensor:", sensorData);
     await updateSensor(sensorData);
     sensorCard.style.display = "none";
-    location.reload();
+    //location.reload();
   };
 }
 async function editMotor(motorId) {
   const motorObj = motorMarkers.find((m) => m.id === motorId);
   if (!motorObj) return alert("Motor not found");
+  motorObj.marker.closePopup();
   const motor = motorObj.data;
   motorCard.style.display = "block";
   motorID.value = motor.motor_Id;
@@ -227,7 +281,7 @@ async function editMotor(motorId) {
     console.log("Updating motor:", motorData);
     await updateMotor(motorData);
     motorCard.style.display = "none";
-    location.reload();
+    //location.reload();
   };
 }
 async function updateMotor(motorData) {
@@ -241,10 +295,10 @@ async function updateMotor(motorData) {
       }
     );
     if (!response.ok) throw new Error("Failed to update");
-    alert("Motor updated successfully!");
+    showActionMessage("Motor updated successfully!");
   } catch (err) {
     console.error("Error updating motor:", err);
-    alert("Error updating motor");
+    showActionMessage("Error updating motor ❌");
   }
 }
 async function updateSensor(sensorData) {
@@ -258,10 +312,10 @@ async function updateSensor(sensorData) {
       }
     );
     if (!response.ok) throw new Error("Failed to update");
-    alert("Sensor updated successfully!");
+    showActionMessage("Sensor updated successfully!");
   } catch (err) {
     console.error("Error updating sensor:", err);
-    alert("Error updating sensor");
+    showActionMessage("Error updating sensor ❌");
   }
 }
 
@@ -341,7 +395,7 @@ async function loadMotorsFromDB() {
 
 function toggleSensor(sensorId, isActive) {
   console.log(`Sensor ${sensorId} toggled to ${isActive ? "ON" : "OFF"}`);
-  // Here you can send a request to your backend to update the sensor status
+
   fetch(`http://localhost:5212/api/sensor/${sensorId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

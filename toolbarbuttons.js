@@ -2,7 +2,8 @@
 
 const CursorBtn = createMapButton({
   className: "cursor-btn",
-  imgSrc: "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/cursor.png",
+  imgSrc:
+    "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/cursor.png",
   onClick: () => alert("Cursor button clicked!"),
 });
 L.control.cursorBtn = CursorBtn;
@@ -12,7 +13,8 @@ L.control.cursorBtn({ position: "topright" }).addTo(map);
 
 const LocateBtn = createMapButton({
   className: "locate-btn",
-  imgSrc: "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/location.png",
+  imgSrc:
+    "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/location.png",
   onClick: Location,
 });
 L.control.locateBtn = LocateBtn;
@@ -42,8 +44,9 @@ L.control.motorBtn({ position: "topright" }).addTo(map);
 
 const ColorBtn = createMapButton({
   className: "color-btn",
-  imgSrc: "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/color.png",
-  onClick: () => alert("Color button clicked!"),
+  imgSrc:
+    "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/color.png",
+  onClick: () => ColorPickerFunction(),
 });
 L.control.colorBtn = ColorBtn;
 L.control.colorBtn({ position: "topright" }).addTo(map);

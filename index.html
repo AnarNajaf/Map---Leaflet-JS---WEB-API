@@ -15,6 +15,19 @@
   </head>
   <body>
     <div id="mapMessage" class="map-message hidden"></div>
+    <div id="actionMessage" class="action-message hidden"></div>
+    <div id="confirmModal" class="modal hidden">
+      <div class="modal-content">
+        <h3 id="confirmTitle">Are you sure?</h3>
+        <p id="confirmMessage">This action cannot be undone.</p>
+
+        <div class="modal-actions">
+          <button id="confirmCancel" class="btn cancel">Cancel</button>
+          <button id="confirmOk" class="btn danger">Yes, continue</button>
+        </div>
+      </div>
+    </div>
+
     <div id="map"></div>
     <form action="#" class="info_card" id="sensorCard">
       <span
@@ -61,7 +74,7 @@
       <h3>Motor Information</h3>
 
       <label for="motorId">Motor ID:</label>
-      <input type="text" id="motorId" name="motorId" required/>
+      <input type="text" id="motorId" name="motorId" required />
 
       <label for="motorType">Sensor Type:</label>
       <select id="motorType" name="motorType">
@@ -81,7 +94,11 @@
       </label>
 
       <label for="installationDateMotor">Installation Date:</label>
-      <input type="date" id="installationDateMotor" name="installationDateMotor" />
+      <input
+        type="date"
+        id="installationDateMotor"
+        name="installationDateMotor"
+      />
 
       <button type="button" id="MotorSubmitBtn">Submit</button>
     </form>

@@ -18,66 +18,62 @@ var drawControl = new L.Control.Draw({
   },
   edit: {
     featureGroup: drawnItems,
-    remove: true 
+    remove: true,
   },
 });
 map.addControl(drawControl);
 map.on("draw:deleted", async function (event) {
-    event.layers.eachLayer(async function (layer) {
+  event.layers.eachLayer(async function (layer) {
+    if (!layer.farmId) {
+      console.warn("No farmId attached to layer.");
+      return;
+    }
 
-        if (!layer.farmId) {
-            console.warn("No farmId attached to layer.");
-            return;
-        }
+    try {
+      await fetch(`http://localhost:5212/api/farm/${layer.farmId}`, {
+        method: "DELETE",
+      });
 
-        try {
-            await fetch(`http://localhost:5212/api/farm/${layer.farmId}`, {
-                method: "DELETE"
-            });
-
-            console.log("Deleted farm:", layer.farmId);
-
-        } catch (err) {
-            console.error("Delete failed:", err);
-        }
-    });
+      console.log("Deleted farm:", layer.farmId);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  });
 });
 
 map.on(L.Draw.Event.CREATED, async function (event) {
-    var layer = event.layer;
+  var layer = event.layer;
 
-    if (event.layerType === "polygon") {
-        const latlngs = layer.getLatLngs()[0];
-        const coords = latlngs.map(p => [p.lat, p.lng]);
+  if (event.layerType === "polygon") {
+    const latlngs = layer.getLatLngs()[0];
+    const coords = latlngs.map((p) => [p.lat, p.lng]);
 
-        const farmData = {
-            name: `Farm ${Date.now().toFixed()}`,
-            color: "#FF0000",
-            responsiblePerson: "Default User",
-            farmType: "None",
-            polygon: coords
-        };
+    const farmData = {
+      name: `Farm ${Date.now().toFixed()}`,
+      color: "#FF0000",
+      responsiblePerson: "Default User",
+      farmType: "None",
+      polygon: coords,
+    };
 
-        try {
-            const response = await fetch("http://localhost:5212/api/farm", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(farmData)
-            });
+    try {
+      const response = await fetch("http://localhost:5212/api/farm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(farmData),
+      });
 
-            if (!response.ok) return alert("Failed to save!");
+      if (!response.ok) return alert("Failed to save!");
 
-            const result = await response.json();
-            console.log("Saved farm:", result);
+      const result = await response.json();
+      console.log("Saved farm:", result);
 
-            layer.farmId = result.id;
-            attachPolygonClick(layer, result.id);
-
-        } catch (err) {
-            console.error("Fetch failed:", err);
-        }
-        
+      layer.farmId = result.id;
+      attachPolygonClick(layer, result.id);
+    } catch (err) {
+      console.error("Fetch failed:", err);
     }
+  }
 
-    drawnItems.addLayer(layer);
+  drawnItems.addLayer(layer);
 });
