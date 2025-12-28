@@ -25,6 +25,7 @@ document.getElementById("useTodayDateMotor").addEventListener("change", function
   }
 });
 
+//Sensor UI
 const sensorCard = document.getElementById("sensorCard");
 const sensorID = document.getElementById("sensorId");
 const sensorType = document.getElementById("sensorType");
@@ -34,7 +35,7 @@ const installationDate = document.getElementById("installationDate");
 const useTodayDate = document.getElementById("useTodayDate");
 const submitBtn = document.getElementById("submitBtn");
 
-//Motor
+//Motor UI
 const motorCard = document.getElementById("motorCard");
 const motorID = document.getElementById("motorId");
 const motorType = document.getElementById("motorType");
@@ -66,9 +67,16 @@ var isPlacingMotor = false;
 
 function resetToolSelection() {
   selectedTool = null;
-  colorMode = false;
+
   isPlacingSensor = false;
+  isPlacingMotor = false;
+
   map.getContainer().style.cursor = "";
+  hideMapMessage();
+
+  sensorCard.style.display = "none";
+  motorCard.style.display = "none";
+
   console.log("Tool selection reset.");
 }
 function Location() {
@@ -94,6 +102,18 @@ function Location() {
   }
 }
 
+//Fundamental Functions 
+//Show Map Message
+function showMapMessage(message) {
+  const messageDiv = document.getElementById("mapMessage");
+  messageDiv.innerText = message;
+  messageDiv.classList.remove("hidden");
+}
+
+function hideMapMessage() {
+  const messageDiv = document.getElementById("mapMessage");
+  messageDiv.classList.add("hidden");
+}
 
 
 var OpenSensorInformationForm = (latt, lngg) => {
@@ -172,45 +192,51 @@ async function saveMotor(motorData) {
     }
 }
 
-function Sensor() {
-  if (!isPlacingSensor) {
-    isPlacingSensor = true;
-    map.getContainer().style.cursor =
-      "url('../images/alternative_sensor.png') 20 20, auto";
-    map.on("click", function (e) {
-      if (!isPlacingSensor) return;
-      L.marker([e.latlng.lat, e.latlng.lng], { icon: sensorIcon })
-        .addTo(map)
-        .bindPopup("Sensor placed!")
-        .openPopup();
-      OpenSensorInformationForm(e.latlng.lat, e.latlng.lng);
-      map.getContainer().style.cursor = "";
-      isPlacingSensor = false;
-    });
-  } else {
-    map.getContainer().style.cursor = "";
-    isPlacingSensor = false;
-  }
-}
-function Motor() {
-  if (!isPlacingMotor) {
-    isPlacingMotor = true;
-    map.getContainer().style.cursor = "url('../images/motor.png') 20 20, auto";
+map.on("click", function (e) {
+  if (isPlacingSensor) {
+    L.marker([e.latlng.lat, e.latlng.lng], { icon: sensorIcon })
+      .addTo(map)
+      .bindPopup("Sensor placed!")
+      .openPopup();
 
-    map.on("click", function (e) {
-      if (!isPlacingMotor) return;
-      L.marker([e.latlng.lat, e.latlng.lng], { icon: motorIcon })
-        .addTo(map)
-        .bindPopup("Motor placed!")
-        .openPopup();
-      OpenMotorInformationForm(e.latlng.lat, e.latlng.lng);
-      map.getContainer().style.cursor = "";
-      isPlacingMotor = false;
-    });
-  } else {
-    map.getContainer().style.cursor = "";
-    isPlacingMotor = false;
+    OpenSensorInformationForm(e.latlng.lat, e.latlng.lng);
+    // no resetToolSelection here, so form stays open
+    return;
   }
+
+  if (isPlacingMotor) {
+    L.marker([e.latlng.lat, e.latlng.lng], { icon: motorIcon })
+      .addTo(map)
+      .bindPopup("Motor placed!")
+      .openPopup();
+
+    OpenMotorInformationForm(e.latlng.lat, e.latlng.lng);
+    // no resetToolSelection here
+    return;
+  }
+});
+
+function Sensor() {
+  // only prevent multiple forms open at the same time
+  if (sensorCard.style.display === "block" || motorCard.style.display === "block") {
+    alert("Please finish or close the current form first.");
+    return;
+  }
+  resetToolSelection();
+  isPlacingSensor = true;
+  map.getContainer().style.cursor = "crosshair";
+  showMapMessage("📍 Click on the map to place a sensor.");
+}
+
+function Motor() {
+  if (sensorCard.style.display === "block" || motorCard.style.display === "block") {
+    alert("Please finish or close the current form first.");
+    return;
+  }
+  resetToolSelection();
+  isPlacingMotor = true;
+  map.getContainer().style.cursor = "crosshair";
+  showMapMessage("⚙️ Click on the map to place a motor.");
 }
 
 function createMapButton(options) {

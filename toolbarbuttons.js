@@ -22,7 +22,7 @@ L.control.locateBtn({ position: "bottomright" }).addTo(map);
 
 const SensorBtn = createMapButton({
   className: "sensor-btn",
-  imgSrc: "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/sensor.png",
+  imgSrc: "../images/sensor_left.png",
   onClick: Sensor,
 });
 L.control.sensorBtn = SensorBtn;
@@ -32,7 +32,7 @@ L.control.sensorBtn({ position: "topright" }).addTo(map);
 
 const MotorBtn = createMapButton({
   className: "motor-btn",
-  imgSrc: "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/motor.png",
+  imgSrc: "../images/motor_left.png",
   onClick: Motor,
 });
 L.control.motorBtn = MotorBtn;
