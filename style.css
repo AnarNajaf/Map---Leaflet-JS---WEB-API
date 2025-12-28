@@ -350,21 +350,9 @@ input:checked + .slider:before {
   background: #e53935;
   color: white;
 }
-#action-message {
-  font-family: "Segoe UI", sans-serif;
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #4caf50;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-size: 14px;
-  z-index: 1000;
-}
 .action-message {
   position: absolute;
+  font-family: "Segoe UI", sans-serif;
   top: 60px;
   left: 50%;
   transform: translateX(-50%);
@@ -403,4 +391,7 @@ input:checked + .slider:before {
   cursor: pointer;
   padding: 0;
   background: none;
+}
+#errorMessage {
+  background-color: #e53935;
 }

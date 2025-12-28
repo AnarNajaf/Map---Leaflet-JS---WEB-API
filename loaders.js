@@ -18,26 +18,36 @@ function showConfirm({ title, message, onConfirm }) {
   const messageEl = document.getElementById("confirmMessage");
   const okBtn = document.getElementById("confirmOk");
   const cancelBtn = document.getElementById("confirmCancel");
-
   titleEl.innerText = title;
   messageEl.innerText = message;
-
   modal.classList.remove("hidden");
-
   const close = () => {
     modal.classList.add("hidden");
     okBtn.onclick = null;
     cancelBtn.onclick = null;
   };
-
   okBtn.onclick = () => {
     close();
     onConfirm();
   };
-
   cancelBtn.onclick = close;
 }
-
+function showActionMessage(message) {
+  const messageDiv = document.getElementById("actionMessage");
+  messageDiv.innerText = message;
+  messageDiv.classList.remove("hidden");
+  setTimeout(() => {
+    messageDiv.classList.add("hidden");
+  }, 3000);
+}
+function showErrorMessage(message) {
+  const errorDiv = document.getElementById("errorMessage");
+  errorDiv.innerText = message;
+  errorDiv.classList.remove("hidden");
+  setTimeout(() => {
+    errorDiv.classList.add("hidden");
+  }, 5000);
+}
 async function loadFarmsFromDB() {
   try {
     const response = await fetch("http://localhost:5212/api/farm");
@@ -50,6 +60,8 @@ async function loadFarmsFromDB() {
 
       const polygon = L.polygon(latlngs, {
         color: farm.color || "green",
+        fillColor: farm.color || "green",
+        fillOpacity: 0.5,
         weight: 2,
       });
 
@@ -63,14 +75,6 @@ async function loadFarmsFromDB() {
   } catch (err) {
     console.error("Error loading farms:", err);
   }
-}
-function showActionMessage(message) {
-  const messageDiv = document.getElementById("actionMessage");
-  messageDiv.innerText = message;
-  messageDiv.classList.remove("hidden");
-  setTimeout(() => {
-    messageDiv.classList.add("hidden");
-  }, 3000);
 }
 
 async function loadSensorsFromDB() {
@@ -236,7 +240,7 @@ async function performDeleteMotor(motorId) {
 }
 async function editSensor(sensorId) {
   const sensorObj = sensorMarkers.find((s) => s.id === sensorId);
-  if (!sensorObj) return alert("Sensor not found");
+  if (!sensorObj) showErrorMessage("Sensor not found");
   sensorObj.marker.closePopup();
   const sensor = sensorObj.data;
   sensorCard.style.display = "block";
@@ -261,7 +265,7 @@ async function editSensor(sensorId) {
 }
 async function editMotor(motorId) {
   const motorObj = motorMarkers.find((m) => m.id === motorId);
-  if (!motorObj) return alert("Motor not found");
+  if (!motorObj) return showErrorMessage("Motor not found");
   motorObj.marker.closePopup();
   const motor = motorObj.data;
   motorCard.style.display = "block";

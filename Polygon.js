@@ -63,7 +63,7 @@ map.on(L.Draw.Event.CREATED, async function (event) {
         body: JSON.stringify(farmData),
       });
 
-      if (!response.ok) return alert("Failed to save!");
+      if (!response.ok) return showActionMessage("Failed to save!");
 
       const result = await response.json();
       console.log("Saved farm:", result);

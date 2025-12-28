@@ -118,11 +118,11 @@ function LocationFunction() {
           userMarker.setLatLng([lat, lng]);
         }
       },
-      (err) => alert("Error getting location: " + err.message),
+      (err) => showErrorMessage("Error getting location: " + err.message),
       { enableHighAccuracy: false, maximumAge: 0, timeout: 5000 }
     );
   } else {
-    alert("Geolocation is not supported by this browser.");
+    showErrorMessage("Geolocation is not supported by this browser.");
   }
 }
 
@@ -201,10 +201,10 @@ async function saveSensor(sensorData) {
 
     if (!response.ok) throw new Error("Failed to save");
 
-    alert("Sensor saved successfully!");
+    showMapMessage("Sensor saved successfully!");
   } catch (err) {
     console.error("Error saving sensor:", err);
-    alert("Error saving sensor");
+    showErrorMessage("Error saving sensor");
   }
 }
 
@@ -243,10 +243,10 @@ async function saveMotor(motorData) {
     });
     if (!response.ok) throw new Error("Failed to save");
 
-    alert("Motor saved successfully!");
+    showMapMessage("Motor saved successfully!");
   } catch (err) {
     console.error("Error saving motor:", err);
-    alert("Error saving motor");
+    showErrorMessage("Error saving motor");
   }
 }
 
@@ -323,7 +323,7 @@ function Sensor() {
     sensorCard.style.display === "block" ||
     motorCard.style.display === "block"
   ) {
-    alert("Please finish or close the current form first.");
+    showErrorMessage("Please finish or close the current form first.");
     return;
   }
   resetToolSelection();
@@ -337,7 +337,7 @@ function Motor() {
     sensorCard.style.display === "block" ||
     motorCard.style.display === "block"
   ) {
-    alert("Please finish or close the current form first.");
+    showErrorMessage("Please finish or close the current form first.");
     return;
   }
   resetToolSelection();
