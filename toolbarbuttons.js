@@ -34,7 +34,8 @@ L.control.sensorBtn({ position: "topright" }).addTo(map);
 
 const MotorBtn = createMapButton({
   className: "motor-btn",
-  imgSrc: "../images/motor_left.png",
+  imgSrc:
+    "https://anarnajaf.github.io/Map---Leaflet-JS---WEB-API/images/motor_left.png",
   onClick: Motor,
 });
 L.control.motorBtn = MotorBtn;

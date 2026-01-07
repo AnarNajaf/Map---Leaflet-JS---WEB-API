@@ -48,6 +48,8 @@ function showErrorMessage(message) {
     errorDiv.classList.add("hidden");
   }, 5000);
 }
+
+// Loaders
 async function loadFarmsFromDB() {
   try {
     const response = await fetch("http://localhost:5212/api/farm");
@@ -120,10 +122,11 @@ async function loadSensorsFromDB() {
     <div class="detail-row switch-row">
     <span class="switch-label">Turn On/Off</span>
       <label class="switch">
-        <input type="checkbox" ${
-          sensor.isActive ? "checked" : ""
-        } onchange="toggleSensor('${sensor.sensor_Id}', this.checked)">
-        <span class="slider round"></span>
+        <input type="checkbox"
+        ${sensor.isActive ? "checked" : ""}
+        onchange="toggleSensor('${sensor.sensor_Id}', this.checked, this)"
+        >
+      <span class="slider round"></span>
       </label>
 
     </div>
@@ -184,6 +187,83 @@ async function loadSensorsFromDB() {
     console.error("Error loading sensors:", err);
   }
 }
+
+async function loadMotorsFromDB() {
+  try {
+    const response = await fetch("http://localhost:5212/api/motor");
+    const motors = await response.json();
+
+    motors.forEach((motor) => {
+      const marker = L.marker([motor.lat, motor.lng], {
+        icon: motorIcon,
+      }).addTo(map).bindPopup(`
+<div class="sensor-popup">
+  <!-- Header -->
+  <div class="popup-header">
+    <h4>Motor Info</h4>
+    <div class="popup-actions">
+      <button class="action-btn edit" onclick="editMotor('${
+        motor.motor_Id
+      }')" title="Edit">
+        <img src="../images/edit.png" alt="Edit">
+      </button>
+      <button class="action-btn delete" onclick="deleteMotor('${
+        motor.motor_Id
+      }')" title="Delete">
+        <img src="../images/delete.png" alt="Delete">
+      </button>
+    </div>
+  </div>
+
+  <!-- Motor Basic Details -->
+  <div class="sensor-section motor-details">
+    <div class="detail-row"><span>ID:</span> ${motor.motor_Id}</div>
+    <div class="detail-row"><span>Type:</span> ${motor.type}</div>
+    <div class="detail-row"><span>Farm:</span> ${motor.farmId}</div>
+    <div class="detail-row"><span>Installed:</span> ${new Date(
+      motor.installationDate
+    ).toLocaleDateString()}</div>
+    <div class="detail-row"><span>Status:</span> 
+      <div class="status ${motor.isActive ? "active" : "inactive"}">
+        ${motor.isActive ? "Active" : "Inactive"}
+      </div>
+    </div>
+    <div class="detail-row switch-row">
+      <span class="switch-label">Turn On/Off</span>
+      <label class="switch">
+        <input type="checkbox" ${
+          motor.isActive ? "checked" : ""
+        } onchange="toggleMotor('${motor.motor_Id}', this.checked)">
+        <span class="slider round"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Extra Info -->
+  <div class="sensor-section motor-extra">
+    <div class="detail-row"><span>Working Hours:</span> ${
+      motor.workingHours ?? 0
+    } h</div>
+    <div class="detail-row"><span>Last Maintenance:</span> ${
+      motor.lastMaintenance
+        ? new Date(motor.lastMaintenance).toLocaleDateString()
+        : "N/A"
+    }</div>
+  </div>
+</div>
+`);
+
+      motorMarkers.push({ id: motor.motor_Id, marker: marker, data: motor });
+    });
+
+    console.log("Loaded motors:", motors);
+  } catch (err) {
+    console.error("Error loading motors:", err);
+  }
+}
+
+// Sensor/Motor Management
+
 async function deleteSensor(sensorId) {
   showConfirm({
     title: "Delete Sensor",
@@ -323,88 +403,32 @@ async function updateSensor(sensorData) {
   }
 }
 
-async function loadMotorsFromDB() {
-  try {
-    const response = await fetch("http://localhost:5212/api/motor");
-    const motors = await response.json();
-
-    motors.forEach((motor) => {
-      const marker = L.marker([motor.lat, motor.lng], {
-        icon: motorIcon,
-      }).addTo(map).bindPopup(`
-<div class="sensor-popup">
-  <!-- Header -->
-  <div class="popup-header">
-    <h4>Motor Info</h4>
-    <div class="popup-actions">
-      <button class="action-btn edit" onclick="editMotor('${
-        motor.motor_Id
-      }')" title="Edit">
-        <img src="../images/edit.png" alt="Edit">
-      </button>
-      <button class="action-btn delete" onclick="deleteMotor('${
-        motor.motor_Id
-      }')" title="Delete">
-        <img src="../images/delete.png" alt="Delete">
-      </button>
-    </div>
-  </div>
-
-  <!-- Motor Basic Details -->
-  <div class="sensor-section motor-details">
-    <div class="detail-row"><span>ID:</span> ${motor.motor_Id}</div>
-    <div class="detail-row"><span>Type:</span> ${motor.type}</div>
-    <div class="detail-row"><span>Farm:</span> ${motor.farmId}</div>
-    <div class="detail-row"><span>Installed:</span> ${new Date(
-      motor.installationDate
-    ).toLocaleDateString()}</div>
-    <div class="detail-row"><span>Status:</span> 
-      <div class="status ${motor.isActive ? "active" : "inactive"}">
-        ${motor.isActive ? "Active" : "Inactive"}
-      </div>
-    </div>
-    <div class="detail-row switch-row">
-      <span class="switch-label">Turn On/Off</span>
-      <label class="switch">
-        <input type="checkbox" ${
-          motor.isActive ? "checked" : ""
-        } onchange="toggleMotor('${motor.motor_Id}', this.checked)">
-        <span class="slider round"></span>
-      </label>
-    </div>
-  </div>
-
-  <!-- Extra Info -->
-  <div class="sensor-section motor-extra">
-    <div class="detail-row"><span>Working Hours:</span> ${
-      motor.workingHours ?? 0
-    } h</div>
-    <div class="detail-row"><span>Last Maintenance:</span> ${
-      motor.lastMaintenance
-        ? new Date(motor.lastMaintenance).toLocaleDateString()
-        : "N/A"
-    }</div>
-  </div>
-</div>
-`);
-
-      motorMarkers.push({ id: motor.motor_Id, marker: marker, data: motor });
-    });
-
-    console.log("Loaded motors:", motors);
-  } catch (err) {
-    console.error("Error loading motors:", err);
-  }
-}
-
-function toggleSensor(sensorId, isActive) {
-  console.log(`Sensor ${sensorId} toggled to ${isActive ? "ON" : "OFF"}`);
+function toggleSensor(sensorId, isActive, checkbox) {
+  checkbox.disabled = true;
 
   fetch(`http://localhost:5212/api/sensor/${sensorId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ isActive }),
-  }).then((res) =>
-    res.ok ? console.log("Status updated") : console.error("Failed")
-  );
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      // backend confirmed → sync UI
+      checkbox.checked = data.isActive;
+      showActionMessage("Sensor status updated ✅");
+    })
+    .catch((err) => {
+      // backend rejected → revert UI
+      checkbox.checked = !isActive;
+      showErrorMessage(err.message || "Cannot change sensor state ❌");
+    })
+    .finally(() => {
+      checkbox.disabled = false;
+    });
 }
