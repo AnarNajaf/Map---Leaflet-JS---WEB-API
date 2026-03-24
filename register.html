@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - iTarla</title>
+    <link rel="stylesheet" href="register.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="left-panel">
+        <img src="iTarla_logo.png" alt="iTarla Logo" class="logo" />
+        <h1>Create Your iTarla Account</h1>
+        <p>Register to manage farms, sensors, and motors securely.</p>
+      </div>
+
+      <div class="right-panel">
+        <form id="registerForm" class="card active">
+          <h2>Register</h2>
+
+          <div class="input-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" required />
+          </div>
+
+          <div class="input-group">
+            <label for="surname">Surname</label>
+            <input type="text" id="surname" required />
+          </div>
+
+          <div class="input-group">
+            <label for="age">Age</label>
+            <input type="number" id="age" min="1" required />
+          </div>
+
+          <div class="input-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" required />
+          </div>
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="password" required />
+              <span
+                class="toggle-password"
+                onclick="togglePassword('password', this)"
+                >👁</span
+              >
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="confirmPassword" required />
+              <span
+                class="toggle-password"
+                onclick="togglePassword('confirmPassword', this)"
+                >👁</span
+              >
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="otpCode">OTP Code</label>
+            <input type="text" id="otpCode" maxlength="6" required />
+          </div>
+
+          <div class="button-row">
+            <button type="button" id="sendOtpBtn" class="btn secondary">
+              Send OTP
+            </button>
+            <button type="submit" class="btn">Register</button>
+          </div>
+
+          <p class="switch-link">
+            Already have an account?
+            <a href="login.html">Log in</a>
+          </p>
+
+          <p id="registerMessage" class="message"></p>
+        </form>
+      </div>
+    </div>
+
+    <script src="register.js"></script>
+  </body>
+</html>

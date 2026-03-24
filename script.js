@@ -1,13 +1,31 @@
+// ====================== AUTH ======================
+const token = localStorage.getItem("token");
+
+if (!token) {
+  window.location.href = "login.html";
+}
+
+function authHeaders() {
+  const token = localStorage.getItem("token");
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
+
+// ====================== MAP ======================
 var map = L.map("map", {
   center: [40.505, 49],
   zoom: 16,
   maxZoom: 18,
   minZoom: 10,
 });
-// L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-//   attribution:
-//     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-// }).addTo(map);
 
 document.getElementById("useTodayDate").addEventListener("change", function () {
   const dateInput = document.getElementById("installationDate");
@@ -21,24 +39,20 @@ document.getElementById("useTodayDate").addEventListener("change", function () {
 
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape") {
-    // Close color picker
     if (colorPickerInput) {
       colorPickerInput.remove();
       colorPickerInput = null;
     }
 
-    // Reset coloring mode
     isColoring = false;
     selectedColor = null;
 
-    // Reset cursor & UI
     map.getContainer().style.cursor = "";
     hideMapMessage();
     resetToolSelection();
   }
 });
 
-// Motor form
 document
   .getElementById("useTodayDateMotor")
   .addEventListener("change", function () {
@@ -51,7 +65,7 @@ document
     }
   });
 
-//Sensor UI
+// Sensor UI
 const sensorCard = document.getElementById("sensorCard");
 const sensorID = document.getElementById("sensorId");
 const sensorType = document.getElementById("sensorType");
@@ -61,7 +75,7 @@ const installationDate = document.getElementById("installationDate");
 const useTodayDate = document.getElementById("useTodayDate");
 const submitBtn = document.getElementById("submitBtn");
 
-//Motor UI
+// Motor UI
 const motorCard = document.getElementById("motorCard");
 const motorID = document.getElementById("motorId");
 const motorType = document.getElementById("motorType");
@@ -76,12 +90,13 @@ L.tileLayer(
   {
     maxZoom: 20,
     attribution: "Tiles © Esri",
-  }
+  },
 ).addTo(map);
 
 loadFarmsFromDB();
 loadSensorsFromDB();
 loadMotorsFromDB();
+
 let userMarker = null;
 let selectedTool = null;
 var isPlacingSensor = false;
@@ -91,7 +106,6 @@ let colorPickerInput = null;
 
 function resetToolSelection() {
   selectedTool = null;
-
   isPlacingSensor = false;
   isPlacingMotor = false;
 
@@ -103,6 +117,7 @@ function resetToolSelection() {
 
   console.log("Tool selection reset.");
 }
+
 function LocationFunction() {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
@@ -113,21 +128,19 @@ function LocationFunction() {
         map.setView([lat, lng], 16);
 
         if (!userMarker) {
-          userMarker = L.marker([lat, lng]);
+          userMarker = L.marker([lat, lng]).addTo(map);
         } else {
           userMarker.setLatLng([lat, lng]);
         }
       },
       (err) => showErrorMessage("Error getting location: " + err.message),
-      { enableHighAccuracy: false, maximumAge: 0, timeout: 5000 }
+      { enableHighAccuracy: false, maximumAge: 0, timeout: 5000 },
     );
   } else {
     showErrorMessage("Geolocation is not supported by this browser.");
   }
 }
 
-//Fundamental Functions
-//Show Map Message
 function showMapMessage(message) {
   const messageDiv = document.getElementById("mapMessage");
   messageDiv.innerText = message;
@@ -143,14 +156,16 @@ var OpenSensorInformationForm = (latt, lngg) => {
   sensorCard.style.display = "block";
   sensorLat.value = latt;
   sensorLng.value = lngg;
+
   submitBtn.onclick = async () => {
-    let dateValue = installationDate.value; // "2025-12-04"
+    let dateValue = installationDate.value;
     const isoDate = new Date(dateValue + "T00:00:00").toISOString();
+
     const sensorData = {
-      sensorId: sensorID.value,
+      deviceCode: sensorID.value,
       type: sensorType.value,
-      lat: latt,
-      lng: lngg,
+      lat: Number(latt),
+      lng: Number(lngg),
       installationDate: isoDate,
       farmId: selectedFarmId,
     };
@@ -160,11 +175,9 @@ var OpenSensorInformationForm = (latt, lngg) => {
     await saveSensor(sensorData);
     sensorCard.style.display = "none";
     hideMapMessage();
-    ////location.reload();
   };
 };
 var ColorPickerFunction = () => {
-  // Clean previous picker if exists
   if (colorPickerInput) {
     colorPickerInput.remove();
     colorPickerInput = null;
@@ -195,16 +208,24 @@ async function saveSensor(sensorData) {
   try {
     const response = await fetch("http://localhost:5212/api/sensor", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(sensorData),
     });
 
-    if (!response.ok) throw new Error("Failed to save");
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Failed to save sensor");
+    }
 
-    showMapMessage("Sensor saved successfully!");
+    const result = await response.json();
+    console.log("Saved sensor:", result);
+
+    showActionMessage("Sensor saved successfully!");
+    await loadSensorsFromDB();
+    resetToolSelection();
   } catch (err) {
     console.error("Error saving sensor:", err);
-    showErrorMessage("Error saving sensor");
+    showErrorMessage(err.message || "Error saving sensor");
   }
 }
 
@@ -214,59 +235,131 @@ var OpenMotorInformationForm = (latt, lngg) => {
   motorLng.value = lngg;
 
   motorSubmitBtn.onclick = async () => {
-    let dateValue = installationDateMotor.value; // "2025-12-04"
+    let dateValue = installationDateMotor.value;
     const isoDate = new Date(dateValue + "T00:00:00").toISOString();
 
     const motorData = {
-      motorId: motorID.value,
+      deviceCode: motorID.value,
       type: motorType.value,
-      lat: latt,
-      lng: lngg,
+      lat: Number(latt),
+      lng: Number(lngg),
       installationDate: isoDate,
       farmId: selectedFarmId,
     };
+
     console.log("Sending motor:", motorData);
 
     await saveMotor(motorData);
-
     motorCard.style.display = "none";
     hideMapMessage();
-    //location.reload();
   };
 };
+
 async function saveMotor(motorData) {
   try {
     const response = await fetch("http://localhost:5212/api/motor", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(motorData),
     });
-    if (!response.ok) throw new Error("Failed to save");
 
-    showMapMessage("Motor saved successfully!");
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Failed to save motor");
+    }
+
+    const result = await response.json();
+    console.log("Saved motor:", result);
+
+    showActionMessage("Motor saved successfully!");
+    await loadMotorsFromDB();
+    resetToolSelection();
   } catch (err) {
     console.error("Error saving motor:", err);
-    showErrorMessage("Error saving motor");
+    showErrorMessage(err.message || "Error saving motor");
   }
 }
+function isPointOnSegment(px, py, x1, y1, x2, y2) {
+  const cross = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1);
+  if (Math.abs(cross) > 1e-10) return false;
 
-//ToolBar Functions
+  const dot = (px - x1) * (px - x2) + (py - y1) * (py - y2);
+  return dot <= 0;
+}
+
+function isPointInsidePolygon(latlng, polygonLatLngs) {
+  const x = latlng.lng;
+  const y = latlng.lat;
+  let inside = false;
+
+  for (
+    let i = 0, j = polygonLatLngs.length - 1;
+    i < polygonLatLngs.length;
+    j = i++
+  ) {
+    const xi = polygonLatLngs[i].lng;
+    const yi = polygonLatLngs[i].lat;
+    const xj = polygonLatLngs[j].lng;
+    const yj = polygonLatLngs[j].lat;
+
+    if (isPointOnSegment(x, y, xi, yi, xj, yj)) {
+      return true;
+    }
+
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
+}
+
+function getFarmIdFromLatLng(latlng) {
+  let foundFarmId = null;
+
+  drawnItems.eachLayer((layer) => {
+    if (!(layer instanceof L.Polygon)) return;
+    if (!layer.farmId) return;
+
+    const latlngSets = layer.getLatLngs();
+    if (!latlngSets || !latlngSets.length) return;
+
+    const outerRing = Array.isArray(latlngSets[0]) ? latlngSets[0] : latlngSets;
+
+    if (isPointInsidePolygon(latlng, outerRing)) {
+      foundFarmId = layer.farmId;
+    }
+  });
+
+  return foundFarmId;
+}
 function placeSensor(latlng) {
-  L.marker([latlng.lat, latlng.lng], { icon: sensorIcon })
-    .addTo(map)
-    .bindPopup("Sensor placed!")
-    .openPopup();
+  const farmId = getFarmIdFromLatLng(latlng);
 
+  if (!farmId) {
+    showErrorMessage("Please click inside one of your farms.");
+    resetToolSelection();
+    hideMapMessage();
+    return;
+  }
+
+  selectedFarmId = farmId;
   OpenSensorInformationForm(latlng.lat, latlng.lng);
   hideMapMessage();
 }
 
 function placeMotor(latlng) {
-  L.marker([latlng.lat, latlng.lng], { icon: motorIcon })
-    .addTo(map)
-    .bindPopup("Motor placed!")
-    .openPopup();
+  const farmId = getFarmIdFromLatLng(latlng);
 
+  if (!farmId) {
+    showErrorMessage("Please click inside one of your farms.");
+    resetToolSelection();
+    hideMapMessage();
+    return;
+  }
+
+  selectedFarmId = farmId;
   OpenMotorInformationForm(latlng.lat, latlng.lng);
   hideMapMessage();
 }
@@ -282,14 +375,13 @@ function colorPolygon(latlng) {
       if (layer.farmId) {
         fetch(`http://localhost:5212/api/farm/${layer.farmId}/color`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify({ color: selectedColor }),
         }).catch((err) => console.error("Color update failed:", err));
       }
     }
   });
 
-  // Reset coloring mode AFTER successful click
   if (colored) {
     isColoring = false;
     selectedColor = null;
@@ -297,7 +389,7 @@ function colorPolygon(latlng) {
     hideMapMessage();
   }
 }
-//
+
 map.on("click", function (e) {
   if (isPlacingSensor) {
     placeSensor(e.latlng);
@@ -314,11 +406,10 @@ map.on("click", function (e) {
     return;
   }
 
-  hideMapMessage(); // normal click
+  hideMapMessage();
 });
 
 function Sensor() {
-  // only prevent multiple forms open at the same time
   if (
     sensorCard.style.display === "block" ||
     motorCard.style.display === "block"
@@ -326,10 +417,11 @@ function Sensor() {
     showErrorMessage("Please finish or close the current form first.");
     return;
   }
+
   resetToolSelection();
   isPlacingSensor = true;
   map.getContainer().style.cursor = "crosshair";
-  showMapMessage("📍 Click on the map to place a sensor.");
+  showMapMessage("📍 Click inside one of your farms to place a sensor.");
 }
 
 function Motor() {
@@ -340,20 +432,21 @@ function Motor() {
     showErrorMessage("Please finish or close the current form first.");
     return;
   }
+
   resetToolSelection();
   isPlacingMotor = true;
   map.getContainer().style.cursor = "crosshair";
-  showMapMessage("⚙️ Click on the map to place a motor.");
+  showMapMessage("⚙️ Click inside one of your farms to place a motor.");
 }
+
 function Cursor() {
   resetToolSelection();
   map.getContainer().style.cursor = "default";
 }
 
 function createMapButton(options) {
-  // options: {className, imgSrc, imgWidth, imgHeight, onClick}
   L.Control.GenericBtn = L.Control.extend({
-    onAdd: function (map) {
+    onAdd: function () {
       const btn = L.DomUtil.create("button", options.className);
       btn.style.backgroundColor = "white";
       btn.style.padding = "5px";
@@ -365,16 +458,13 @@ function createMapButton(options) {
       img.style.height = options.imgHeight || "20px";
       img.style.verticalAlign = "middle";
       btn.appendChild(img);
+
       L.DomEvent.disableClickPropagation(btn);
       btn.onclick = options.onClick;
       return btn;
     },
-    onRemove: function (map) {
-      // optional cleanup
-    },
   });
 
-  // Factory function
   return function (opts) {
     return new L.Control.GenericBtn(opts);
   };

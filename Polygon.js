@@ -1,7 +1,9 @@
 let polygons = [];
 let polygonList = [];
+
 var drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
+
 var drawControl = new L.Control.Draw({
   position: "topright",
   draw: {
@@ -21,7 +23,9 @@ var drawControl = new L.Control.Draw({
     remove: true,
   },
 });
+
 map.addControl(drawControl);
+
 map.on("draw:deleted", async function (event) {
   event.layers.eachLayer(async function (layer) {
     if (!layer.farmId) {
@@ -32,6 +36,7 @@ map.on("draw:deleted", async function (event) {
     try {
       await fetch(`http://localhost:5212/api/farm/${layer.farmId}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
 
       console.log("Deleted farm:", layer.farmId);
@@ -46,7 +51,11 @@ map.on(L.Draw.Event.CREATED, async function (event) {
 
   if (event.layerType === "polygon") {
     const latlngs = layer.getLatLngs()[0];
-    const coords = latlngs.map((p) => [p.lat, p.lng]);
+
+    const coords = latlngs.map((p) => ({
+      latitude: p.lat,
+      longitude: p.lng,
+    }));
 
     const farmData = {
       name: `Farm ${Date.now().toFixed()}`,
@@ -59,11 +68,16 @@ map.on(L.Draw.Event.CREATED, async function (event) {
     try {
       const response = await fetch("http://localhost:5212/api/farm", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify(farmData),
       });
 
-      if (!response.ok) return showActionMessage("Failed to save!");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to save farm:", errorText);
+        showActionMessage("Failed to save!");
+        return;
+      }
 
       const result = await response.json();
       console.log("Saved farm:", result);

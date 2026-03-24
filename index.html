@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>Farm Map System</title>
@@ -15,6 +15,12 @@
   </head>
   <body>
     <div id="mapMessage" class="map-message hidden"></div>
+    <button
+      onclick="logout()"
+      style="position: fixed; top: 10px; left: 10px; z-index: 9999"
+    >
+      Logout
+    </button>
     <div id="actionMessage" class="action-message hidden"></div>
     <div id="errorMessage" class="action-message hidden"></div>
     <div id="confirmModal" class="modal hidden">
@@ -33,7 +39,7 @@
     <form action="#" class="info_card" id="sensorCard">
       <span
         class="close-btn"
-        onclick="document.getElementById('sensorCard').style.display='none'"
+        onclick="document.getElementById('sensorCard').style.display = 'none'"
         >&times;</span
       >
       <h3>Sensor Information</h3>
@@ -69,7 +75,7 @@
     <form action="POST" class="info_card" id="motorCard" novalidate>
       <span
         class="close-btn"
-        onclick="document.getElementById('motorCard').style.display='none'"
+        onclick="document.getElementById('motorCard').style.display = 'none'"
         >&times;</span
       >
       <h3>Motor Information</h3>
