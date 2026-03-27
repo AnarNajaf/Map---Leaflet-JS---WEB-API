@@ -162,7 +162,7 @@ var OpenSensorInformationForm = (latt, lngg) => {
     const isoDate = new Date(dateValue + "T00:00:00").toISOString();
 
     const sensorData = {
-      deviceCode: sensorID.value,
+      deviceCode: sensorID.value.trim(),
       type: sensorType.value,
       lat: Number(latt),
       lng: Number(lngg),
@@ -172,9 +172,12 @@ var OpenSensorInformationForm = (latt, lngg) => {
 
     console.log("Sending sensor:", sensorData);
 
-    await saveSensor(sensorData);
-    sensorCard.style.display = "none";
-    hideMapMessage();
+    const saved = await saveSensor(sensorData);
+
+    if (saved) {
+      sensorCard.style.display = "none";
+      hideMapMessage();
+    }
   };
 };
 var ColorPickerFunction = () => {
@@ -203,9 +206,56 @@ var ColorPickerFunction = () => {
     map.getContainer().style.cursor = "url('./images/color.png'), auto";
   });
 };
+// Check if sensor exists in Firestore before saving to backend
+async function waitForFirebase(maxWaitMs = 5000) {
+  const start = Date.now();
+
+  while (Date.now() - start < maxWaitMs) {
+    if (window.firebaseDb && window.firestoreDoc && window.firestoreGetDoc) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  return false;
+}
+
+async function checkSensorExistsInFirestore(deviceCode) {
+  const firebaseReady = await waitForFirebase();
+
+  if (!firebaseReady) {
+    throw new Error("Firebase is not initialized.");
+  }
+
+  const cleanCode = deviceCode.trim();
+
+  if (!cleanCode) {
+    throw new Error("Sensor ID is required.");
+  }
+
+  const docRef = window.firestoreDoc(window.firebaseDb, "Sensors", cleanCode);
+  const docSnap = await window.firestoreGetDoc(docRef);
+
+  return docSnap.exists();
+}
 
 async function saveSensor(sensorData) {
   try {
+    const cleanCode = sensorData.deviceCode?.trim();
+
+    if (!cleanCode) {
+      throw new Error("Sensor ID is required.");
+    }
+
+    const existsInFirestore = await checkSensorExistsInFirestore(cleanCode);
+
+    if (!existsInFirestore) {
+      throw new Error(`Sensor ${cleanCode} not found in Firestore.`);
+    }
+
+    sensorData.deviceCode = cleanCode;
+
     const response = await fetch("http://localhost:5212/api/sensor", {
       method: "POST",
       headers: authHeaders(),
@@ -223,9 +273,11 @@ async function saveSensor(sensorData) {
     showActionMessage("Sensor saved successfully!");
     await loadSensorsFromDB();
     resetToolSelection();
+    return true;
   } catch (err) {
     console.error("Error saving sensor:", err);
     showErrorMessage(err.message || "Error saving sensor");
+    return false;
   }
 }
 

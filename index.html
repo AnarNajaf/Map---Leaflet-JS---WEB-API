@@ -10,17 +10,16 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"
     />
-
-    <style></style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="mapMessage" class="map-message hidden"></div>
-    <button
-      onclick="logout()"
-      style="position: fixed; top: 10px; left: 10px; z-index: 9999"
-    >
-      Logout
-    </button>
+    <button class="logout-button" onclick="logout()">Logout</button>
     <div id="actionMessage" class="action-message hidden"></div>
     <div id="errorMessage" class="action-message hidden"></div>
     <div id="confirmModal" class="modal hidden">
@@ -34,7 +33,10 @@
         </div>
       </div>
     </div>
-
+    <div id="sensorSidebar" class="sensor-sidebar">
+      <h3>Connected Sensors</h3>
+      <div id="sensorList" class="sensor-list"></div>
+    </div>
     <div id="map"></div>
     <form action="#" class="info_card" id="sensorCard">
       <span
@@ -114,6 +116,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-geometryutil"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script type="module" src="firebase-live.js"></script>
     <script src="icons.js"></script>
     <script src="loaders.js"></script>
     <script src="script.js"></script>

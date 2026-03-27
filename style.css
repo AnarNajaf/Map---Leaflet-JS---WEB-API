@@ -262,7 +262,7 @@ input:checked + .slider:before {
 .reading-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
 }
 
 .reading-item {
@@ -394,4 +394,72 @@ input:checked + .slider:before {
 }
 #errorMessage {
   background-color: #e53935;
+}
+.logout-button {
+  background-color: #ffffff;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  z-index: 9999;
+}
+.logout-button:hover {
+  background-color: #f0f0f0;
+  border-color: #aaa;
+}
+
+/* Sidebar Sensor Actions */
+.sensor-sidebar {
+  font-family: "Lato", sans-serif;
+  position: fixed;
+  top: 80px;
+  left: 10px;
+  width: 200px;
+  max-height: 75vh;
+  overflow-y: auto;
+  z-index: 999;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.sensor-sidebar h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.sensor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sensor-item {
+  background: #003915;
+  color: white;
+  padding: 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.sensor-item:hover {
+  transform: translateY(-2px);
+  background: #00491b;
+}
+
+.sensor-item .sensor-code {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.sensor-item .sensor-farm {
+  font-size: 13px;
+  opacity: 0.9;
 }

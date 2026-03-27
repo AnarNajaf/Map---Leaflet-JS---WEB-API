@@ -2,6 +2,7 @@ var selectedFarmId = null;
 let sensorMarkers = [];
 let motorMarkers = [];
 var selectedLayer = null;
+const missingSensors = new Set();
 
 function attachPolygonClick(layer, farmId) {
   layer.farmId = farmId;
@@ -9,6 +10,37 @@ function attachPolygonClick(layer, farmId) {
     selectedFarmId = farmId;
     selectedLayer = layer;
     console.log("Selected farm for sensor placement:", selectedFarmId);
+  });
+}
+
+function renderSensorSidebar() {
+  const sensorList = document.getElementById("sensorList");
+  if (!sensorList) return;
+
+  sensorList.innerHTML = "";
+
+  if (sensorMarkers.length === 0) {
+    sensorList.innerHTML = `<div style="color:#666;">No sensors</div>`;
+    return;
+  }
+
+  sensorMarkers.forEach((sensorObj) => {
+    const sensor = sensorObj.data;
+
+    const item = document.createElement("div");
+    item.className = "sensor-item";
+
+    item.innerHTML = `
+      <div class="sensor-code">Sensor: ${sensor.deviceCode.slice(0, 6) ?? sensor.id.slice(0, 6)}</div>
+      <div class="sensor-farm">Farm: ${sensor.farmId.slice(0, 6)}</div>
+    `;
+
+    item.onclick = () => {
+      map.setView([sensor.lat, sensor.lng], 18);
+      sensorObj.marker.openPopup();
+    };
+
+    sensorList.appendChild(item);
   });
 }
 
@@ -56,6 +88,82 @@ function showErrorMessage(message) {
 }
 
 // ====================== LOADERS ======================
+const sensorUnsubscribers = {};
+
+function attachRealtimeSensorListener(sensor, marker) {
+  if (
+    !window.firebaseDb ||
+    !window.firestoreDoc ||
+    !window.firestoreOnSnapshot
+  ) {
+    console.error("Firebase is not initialized.");
+    return;
+  }
+
+  if (!sensor.deviceCode) {
+    console.warn("Sensor has no deviceCode:", sensor.id);
+    return;
+  }
+
+  const docRef = window.firestoreDoc(
+    window.firebaseDb,
+    "Sensors",
+    sensor.deviceCode,
+  );
+
+  if (sensorUnsubscribers[sensor.id]) {
+    sensorUnsubscribers[sensor.id]();
+  }
+
+  sensorUnsubscribers[sensor.id] = window.firestoreOnSnapshot(
+    docRef,
+    (docSnap) => {
+      if (!docSnap.exists()) {
+        console.warn("Sensor not found in Firestore:", sensor.deviceCode);
+
+        showErrorMessage(`Sensor ${sensor.deviceCode} not found ❌`);
+
+        const tempEl = document.getElementById(`temp-${sensor.id}`);
+        const moistureEl = document.getElementById(`moisture-${sensor.id}`);
+        const phEl = document.getElementById(`ph-${sensor.id}`);
+        const condEl = document.getElementById(`cond-${sensor.id}`);
+        const batteryEl = document.getElementById(`battery-${sensor.id}`);
+
+        if (tempEl) tempEl.textContent = "N/A °C";
+        if (moistureEl) moistureEl.textContent = "N/A %";
+        if (phEl) phEl.textContent = "N/A";
+        if (condEl) condEl.textContent = "N/A";
+        if (batteryEl) batteryEl.textContent = "N/A %";
+
+        return;
+      }
+
+      const live = docSnap.data();
+
+      sensor.temperature = live.temperature ?? null;
+      sensor.soilMoisture = live.soilMoisture ?? null;
+      sensor.ph = live.pH ?? null;
+      sensor.conductivity = live.conductivity ?? null;
+      sensor.batteryLevel = live.batteryLevel ?? null;
+
+      const tempEl = document.getElementById(`temp-${sensor.id}`);
+      const moistureEl = document.getElementById(`moisture-${sensor.id}`);
+      const phEl = document.getElementById(`ph-${sensor.id}`);
+      const condEl = document.getElementById(`cond-${sensor.id}`);
+      const batteryEl = document.getElementById(`battery-${sensor.id}`);
+
+      if (tempEl) tempEl.textContent = `${live.temperature ?? "N/A"} °C`;
+      if (moistureEl)
+        moistureEl.textContent = `${live.soilMoisture ?? "N/A"} %`;
+      if (phEl) phEl.textContent = `${live.pH ?? "N/A"}`;
+      if (condEl) condEl.textContent = `${live.conductivity ?? "N/A"}`;
+      if (batteryEl) batteryEl.textContent = `${live.batteryLevel ?? "N/A"} %`;
+    },
+    (error) => {
+      console.error("Realtime Firestore error:", error);
+    },
+  );
+}
 
 async function loadFarmsFromDB() {
   try {
@@ -105,6 +213,18 @@ async function loadFarmsFromDB() {
 }
 
 async function loadSensorsFromDB() {
+  sensorMarkers.forEach((s) => {
+    if (sensorUnsubscribers[s.id]) {
+      sensorUnsubscribers[s.id]();
+      delete sensorUnsubscribers[s.id];
+    }
+
+    if (s.marker) {
+      map.removeLayer(s.marker);
+    }
+  });
+
+  sensorMarkers = [];
   try {
     const response = await fetch("http://localhost:5212/api/sensor", {
       headers: authHeaders(),
@@ -115,10 +235,7 @@ async function loadSensorsFromDB() {
     const sensors = await response.json();
 
     sensors.forEach((sensor) => {
-      const marker = L.marker([sensor.lat, sensor.lng], {
-        icon: sensorIcon,
-      }).addTo(map).bindPopup(`
-<div class="sensor-popup">
+      const popUpHTML = `<div class="sensor-popup">
   <div class="popup-header">
     <h4>Sensor Info</h4>
     <div class="popup-actions">
@@ -155,20 +272,33 @@ async function loadSensorsFromDB() {
   <div class="sensor-section sensor-readings">
     <h5>Sensor Readings</h5>
     <div class="reading-grid">
-      <div class="reading-item"><span>🌡 Temperature</span><strong>${sensor.temperature ?? "N/A"} °C</strong></div>
-      <div class="reading-item"><span>💧 Soil Moisture</span><strong>${sensor.soilMoisture ?? "N/A"} %</strong></div>
-      <div class="reading-item"><span>⚗️ pH</span><strong>${sensor.ph ?? "N/A"}</strong></div>
-      <div class="reading-item"><span>⚡ Conductivity</span><strong>${sensor.conductivity ?? "N/A"}</strong></div>
-      <div class="reading-item"><span>🪫 Battery</span><strong>${sensor.batteryLevel ?? "N/A"}%</strong></div>
+      <div class="reading-item"><span>🌡 Temp</span><strong id="temp-${sensor.id}">N/A °C</strong></div>
+      <div class="reading-item"><span>💧 Soil Moisture</span><strong id="moisture-${sensor.id}">N/A %</strong></div>
+      <div class="reading-item"><span>⚗️ pH</span><strong id="ph-${sensor.id}">N/A</strong></div>
+      <div class="reading-item"><span>⚡ Conductivity</span><strong id="cond-${sensor.id}">N/A</strong></div>
+      <div class="reading-item"><span>🪫 Battery</span><strong id="battery-${sensor.id}">N/A %</strong></div>
     </div>
   </div>
 </div>
-`);
-
+      `;
+      const marker = L.marker([sensor.lat, sensor.lng], {
+        icon: sensorIcon,
+      })
+        .addTo(map)
+        .bindPopup(popUpHTML);
       sensorMarkers.push({
         id: sensor.id,
         marker: marker,
         data: sensor,
+      });
+      marker.on("popupopen", () => {
+        attachRealtimeSensorListener(sensor, marker);
+      });
+      marker.on("popupclose", () => {
+        if (sensorUnsubscribers[sensor.id]) {
+          sensorUnsubscribers[sensor.id]();
+          delete sensorUnsubscribers[sensor.id];
+        }
       });
     });
 
@@ -176,6 +306,7 @@ async function loadSensorsFromDB() {
   } catch (err) {
     console.error("Error loading sensors:", err);
   }
+  renderSensorSidebar();
 }
 
 async function loadMotorsFromDB() {
@@ -308,11 +439,18 @@ async function editSensor(sensorId) {
   selectedFarmId = sensor.farmId;
 
   submitBtn.onclick = async () => {
+    let isoDate = sensor.installationDate;
+
+    if (installationDate.value) {
+      isoDate = new Date(installationDate.value + "T00:00:00").toISOString();
+    }
+
     const sensorData = {
+      deviceCode: sensorID.value.trim(),
       type: sensorType.value,
       lat: Number(sensorLat.value),
       lng: Number(sensorLng.value),
-      installationDate: sensor.installationDate,
+      installationDate: isoDate,
       isActive: sensor.isActive,
     };
 
