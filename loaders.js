@@ -3,6 +3,56 @@ let sensorMarkers = [];
 let motorMarkers = [];
 var selectedLayer = null;
 const missingSensors = new Set();
+const sensorUnsubscribers = {};
+function buildSensorPopup(sensor) {
+  return `
+<div class="sensor-popup">
+  <div class="popup-header">
+    <h4>Sensor Info</h4>
+    <div class="popup-actions">
+      <button class="action-btn edit" onclick="editSensor('${sensor.id}')" title="Edit">
+        <img src="../images/edit.png" alt="Edit">
+      </button>
+      <button class="action-btn delete" onclick="deleteSensor('${sensor.id}')" title="Delete">
+        <img src="../images/delete.png" alt="Delete">
+      </button>
+    </div>
+  </div>
+
+  <div class="sensor-section sensor-details">
+    <div class="detail-row"><span>Code:</span>${sensor.deviceCode ?? sensor.id}</div>
+    <div class="detail-row"><span>Type:</span> ${sensor.type}</div>
+    <div class="detail-row"><span>Farm:</span> ${sensor.farmId}</div>
+    <div class="detail-row"><span>Installed:</span> ${new Date(sensor.installationDate).toLocaleDateString()}</div>
+    <div class="detail-row"><span>Status:</span> 
+      <div class="status ${sensor.isActive ? "active" : "inactive"}">
+        ${sensor.isActive ? "Active" : "Inactive"}
+      </div>
+    </div>
+    <div class="detail-row switch-row">
+      <span class="switch-label">Turn On/Off</span>
+      <label class="switch">
+        <input type="checkbox"
+          ${sensor.isActive ? "checked" : ""}
+          onchange="toggleSensor('${sensor.id}', this.checked, this)">
+        <span class="slider round"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="sensor-section sensor-readings">
+    <h5>Sensor Readings</h5>
+    <div class="reading-grid">
+      <div class="reading-item"><span>🌡 Temperature</span><strong id="temp-${sensor.id}">N/A °C</strong></div>
+      <div class="reading-item"><span>💧 Soil Moisture</span><strong id="moisture-${sensor.id}">N/A %</strong></div>
+      <div class="reading-item"><span>⚗️ pH</span><strong id="ph-${sensor.id}">N/A</strong></div>
+      <div class="reading-item"><span>⚡ Conductivity</span><strong id="cond-${sensor.id}">N/A</strong></div>
+      <div class="reading-item"><span>🪫 Battery</span><strong id="battery-${sensor.id}">N/A %</strong></div>
+    </div>
+  </div>
+</div>
+`;
+}
 
 function attachPolygonClick(layer, farmId) {
   layer.farmId = farmId;
@@ -88,22 +138,17 @@ function showErrorMessage(message) {
 }
 
 // ====================== LOADERS ======================
-const sensorUnsubscribers = {};
 
-function attachRealtimeSensorListener(sensor, marker) {
+function attachRealtimeSensorListener(sensor) {
   if (
     !window.firebaseDb ||
     !window.firestoreDoc ||
     !window.firestoreOnSnapshot
   ) {
-    console.error("Firebase is not initialized.");
     return;
   }
 
-  if (!sensor.deviceCode) {
-    console.warn("Sensor has no deviceCode:", sensor.id);
-    return;
-  }
+  if (!sensor.deviceCode) return;
 
   const docRef = window.firestoreDoc(
     window.firebaseDb,
@@ -113,28 +158,24 @@ function attachRealtimeSensorListener(sensor, marker) {
 
   if (sensorUnsubscribers[sensor.id]) {
     sensorUnsubscribers[sensor.id]();
+    delete sensorUnsubscribers[sensor.id];
   }
 
   sensorUnsubscribers[sensor.id] = window.firestoreOnSnapshot(
     docRef,
     (docSnap) => {
+      const tempEl = document.getElementById(`temp-${sensor.id}`);
+      const moistureEl = document.getElementById(`moisture-${sensor.id}`);
+      const phEl = document.getElementById(`ph-${sensor.id}`);
+      const condEl = document.getElementById(`cond-${sensor.id}`);
+      const batteryEl = document.getElementById(`battery-${sensor.id}`);
+
       if (!docSnap.exists()) {
-        console.warn("Sensor not found in Firestore:", sensor.deviceCode);
-
-        showErrorMessage(`Sensor ${sensor.deviceCode} not found ❌`);
-
-        const tempEl = document.getElementById(`temp-${sensor.id}`);
-        const moistureEl = document.getElementById(`moisture-${sensor.id}`);
-        const phEl = document.getElementById(`ph-${sensor.id}`);
-        const condEl = document.getElementById(`cond-${sensor.id}`);
-        const batteryEl = document.getElementById(`battery-${sensor.id}`);
-
         if (tempEl) tempEl.textContent = "N/A °C";
         if (moistureEl) moistureEl.textContent = "N/A %";
         if (phEl) phEl.textContent = "N/A";
         if (condEl) condEl.textContent = "N/A";
         if (batteryEl) batteryEl.textContent = "N/A %";
-
         return;
       }
 
@@ -146,12 +187,6 @@ function attachRealtimeSensorListener(sensor, marker) {
       sensor.conductivity = live.conductivity ?? null;
       sensor.batteryLevel = live.batteryLevel ?? null;
 
-      const tempEl = document.getElementById(`temp-${sensor.id}`);
-      const moistureEl = document.getElementById(`moisture-${sensor.id}`);
-      const phEl = document.getElementById(`ph-${sensor.id}`);
-      const condEl = document.getElementById(`cond-${sensor.id}`);
-      const batteryEl = document.getElementById(`battery-${sensor.id}`);
-
       if (tempEl) tempEl.textContent = `${live.temperature ?? "N/A"} °C`;
       if (moistureEl)
         moistureEl.textContent = `${live.soilMoisture ?? "N/A"} %`;
@@ -159,12 +194,108 @@ function attachRealtimeSensorListener(sensor, marker) {
       if (condEl) condEl.textContent = `${live.conductivity ?? "N/A"}`;
       if (batteryEl) batteryEl.textContent = `${live.batteryLevel ?? "N/A"} %`;
     },
-    (error) => {
-      console.error("Realtime Firestore error:", error);
-    },
+    (error) => console.error("Realtime Firestore error:", error),
   );
 }
+function addSensorMarker(sensor) {
+  const marker = L.marker([sensor.lat, sensor.lng], {
+    icon: sensorIcon,
+  }).addTo(map);
 
+  marker.bindPopup(buildSensorPopup(sensor));
+
+  marker.on("popupopen", () => {
+    attachRealtimeSensorListener(sensor);
+  });
+
+  marker.on("popupclose", () => {
+    if (sensorUnsubscribers[sensor.id]) {
+      sensorUnsubscribers[sensor.id]();
+      delete sensorUnsubscribers[sensor.id];
+    }
+  });
+
+  const sensorObj = {
+    id: sensor.id,
+    marker,
+    data: sensor,
+  };
+
+  sensorMarkers.push(sensorObj);
+  return sensorObj;
+}
+function updateSensorMarkerLocally(sensorId, patch) {
+  const sensorObj = sensorMarkers.find((s) => s.id === sensorId);
+  if (!sensorObj) return;
+
+  sensorObj.data = { ...sensorObj.data, ...patch };
+
+  sensorObj.marker.setLatLng([sensorObj.data.lat, sensorObj.data.lng]);
+  sensorObj.marker.setPopupContent(buildSensorPopup(sensorObj.data));
+
+  renderSensorSidebar?.();
+}
+function removeSensorListener(sensorId) {
+  if (sensorUnsubscribers[sensorId]) {
+    sensorUnsubscribers[sensorId]();
+    delete sensorUnsubscribers[sensorId];
+  }
+}
+function buildMotorPopup(motor) {
+  return `
+<div class="sensor-popup">
+  <div class="popup-header">
+    <h4>Motor Info</h4>
+    <div class="popup-actions">
+      <button class="action-btn edit" onclick="editMotor('${motor.id}')" title="Edit">
+        <img src="../images/edit.png" alt="Edit">
+      </button>
+      <button class="action-btn delete" onclick="deleteMotor('${motor.id}')" title="Delete">
+        <img src="../images/delete.png" alt="Delete">
+      </button>
+    </div>
+  </div>
+
+  <div class="sensor-section motor-details">
+    <div class="detail-row"><span>Code:</span> ${motor.deviceCode ?? motor.id}</div>
+    <div class="detail-row"><span>Type:</span> ${motor.type}</div>
+    <div class="detail-row"><span>Farm:</span> ${motor.farmId}</div>
+    <div class="detail-row"><span>Installed:</span> ${new Date(motor.installationDate).toLocaleDateString()}</div>
+    <div class="detail-row"><span>Status:</span> 
+      <div class="status ${motor.isActive ? "active" : "inactive"}">
+        ${motor.isActive ? "Active" : "Inactive"}
+      </div>
+    </div>
+  </div>
+</div>
+`;
+}
+function addMotorMarker(motor) {
+  const marker = L.marker([motor.lat, motor.lng], {
+    icon: motorIcon,
+  }).addTo(map);
+
+  marker.bindPopup(buildMotorPopup(motor));
+
+  const motorObj = {
+    id: motor.id,
+    marker,
+    data: motor,
+  };
+
+  motorMarkers.push(motorObj);
+  return motorObj;
+}
+
+function updateMotorMarkerLocally(motorId, patch) {
+  const motorObj = motorMarkers.find((m) => m.id === motorId);
+  if (!motorObj) return;
+
+  motorObj.data = { ...motorObj.data, ...patch };
+
+  motorObj.marker.setLatLng([motorObj.data.lat, motorObj.data.lng]);
+  motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+}
 async function loadFarmsFromDB() {
   try {
     const response = await fetch("http://localhost:5212/api/farm/my", {
@@ -214,17 +345,11 @@ async function loadFarmsFromDB() {
 
 async function loadSensorsFromDB() {
   sensorMarkers.forEach((s) => {
-    if (sensorUnsubscribers[s.id]) {
-      sensorUnsubscribers[s.id]();
-      delete sensorUnsubscribers[s.id];
-    }
-
-    if (s.marker) {
-      map.removeLayer(s.marker);
-    }
+    removeSensorListener(s.id);
+    if (s.marker) map.removeLayer(s.marker);
   });
-
   sensorMarkers = [];
+
   try {
     const response = await fetch("http://localhost:5212/api/sensor", {
       headers: authHeaders(),
@@ -233,83 +358,21 @@ async function loadSensorsFromDB() {
     if (!response.ok) throw new Error("Failed to load sensors");
 
     const sensors = await response.json();
-
-    sensors.forEach((sensor) => {
-      const popUpHTML = `<div class="sensor-popup">
-  <div class="popup-header">
-    <h4>Sensor Info</h4>
-    <div class="popup-actions">
-      <button class="action-btn edit" onclick="editSensor('${sensor.id}')" title="Edit">
-        <img src="../images/edit.png" alt="Edit">
-      </button>
-      <button class="action-btn delete" onclick="deleteSensor('${sensor.id}')" title="Delete">
-        <img src="../images/delete.png" alt="Delete">
-      </button>
-    </div>
-  </div>
-
-  <div class="sensor-section sensor-details">
-    <div class="detail-row"><span>Code:</span>${sensor.deviceCode ?? sensor.id}</div>
-    <div class="detail-row"><span>Type:</span> ${sensor.type}</div>
-    <div class="detail-row"><span>Farm:</span> ${sensor.farmId}</div>
-    <div class="detail-row"><span>Installed:</span> ${new Date(sensor.installationDate).toLocaleDateString()}</div>
-    <div class="detail-row"><span>Status:</span> 
-      <div class="status ${sensor.isActive ? "active" : "inactive"}">
-        ${sensor.isActive ? "Active" : "Inactive"}
-      </div>
-    </div>
-    <div class="detail-row switch-row">
-      <span class="switch-label">Turn On/Off</span>
-      <label class="switch">
-        <input type="checkbox"
-          ${sensor.isActive ? "checked" : ""}
-          onchange="toggleSensor('${sensor.id}', this.checked, this)">
-        <span class="slider round"></span>
-      </label>
-    </div>
-  </div>
-
-  <div class="sensor-section sensor-readings">
-    <h5>Sensor Readings</h5>
-    <div class="reading-grid">
-      <div class="reading-item"><span>🌡 Temp</span><strong id="temp-${sensor.id}">N/A °C</strong></div>
-      <div class="reading-item"><span>💧 Soil Moisture</span><strong id="moisture-${sensor.id}">N/A %</strong></div>
-      <div class="reading-item"><span>⚗️ pH</span><strong id="ph-${sensor.id}">N/A</strong></div>
-      <div class="reading-item"><span>⚡ Conductivity</span><strong id="cond-${sensor.id}">N/A</strong></div>
-      <div class="reading-item"><span>🪫 Battery</span><strong id="battery-${sensor.id}">N/A %</strong></div>
-    </div>
-  </div>
-</div>
-      `;
-      const marker = L.marker([sensor.lat, sensor.lng], {
-        icon: sensorIcon,
-      })
-        .addTo(map)
-        .bindPopup(popUpHTML);
-      sensorMarkers.push({
-        id: sensor.id,
-        marker: marker,
-        data: sensor,
-      });
-      marker.on("popupopen", () => {
-        attachRealtimeSensorListener(sensor, marker);
-      });
-      marker.on("popupclose", () => {
-        if (sensorUnsubscribers[sensor.id]) {
-          sensorUnsubscribers[sensor.id]();
-          delete sensorUnsubscribers[sensor.id];
-        }
-      });
-    });
+    sensors.forEach(addSensorMarker);
 
     console.log("Loaded sensors:", sensors);
+    renderSensorSidebar?.();
   } catch (err) {
     console.error("Error loading sensors:", err);
   }
-  renderSensorSidebar();
 }
 
 async function loadMotorsFromDB() {
+  motorMarkers.forEach((m) => {
+    if (m.marker) map.removeLayer(m.marker);
+  });
+  motorMarkers = [];
+
   try {
     const response = await fetch("http://localhost:5212/api/motor", {
       headers: authHeaders(),
@@ -318,40 +381,7 @@ async function loadMotorsFromDB() {
     if (!response.ok) throw new Error("Failed to load motors");
 
     const motors = await response.json();
-
-    motors.forEach((motor) => {
-      const marker = L.marker([motor.lat, motor.lng], {
-        icon: motorIcon,
-      }).addTo(map).bindPopup(`
-<div class="sensor-popup">
-  <div class="popup-header">
-    <h4>Motor Info</h4>
-    <div class="popup-actions">
-      <button class="action-btn edit" onclick="editMotor('${motor.id}')" title="Edit">
-        <img src="../images/edit.png" alt="Edit">
-      </button>
-      <button class="action-btn delete" onclick="deleteMotor('${motor.id}')" title="Delete">
-        <img src="../images/delete.png" alt="Delete">
-      </button>
-    </div>
-  </div>
-
-  <div class="sensor-section motor-details">
-    <div class="detail-row"><span>Code:</span> ${motor.deviceCode ?? motor.id}</div>
-    <div class="detail-row"><span>Type:</span> ${motor.type}</div>
-    <div class="detail-row"><span>Farm:</span> ${motor.farmId}</div>
-    <div class="detail-row"><span>Installed:</span> ${new Date(motor.installationDate).toLocaleDateString()}</div>
-    <div class="detail-row"><span>Status:</span> 
-      <div class="status ${motor.isActive ? "active" : "inactive"}">
-        ${motor.isActive ? "Active" : "Inactive"}
-      </div>
-    </div>
-  </div>
-</div>
-`);
-
-      motorMarkers.push({ id: motor.id, marker: marker, data: motor });
-    });
+    motors.forEach(addMotorMarker);
 
     console.log("Loaded motors:", motors);
   } catch (err) {
@@ -383,8 +413,10 @@ async function performDeleteSensor(sensorId) {
 
     const sensorObj = sensorMarkers.find((s) => s.id === sensorId);
     if (sensorObj) {
+      removeSensorListener(sensorId);
       map.removeLayer(sensorObj.marker);
       sensorMarkers = sensorMarkers.filter((s) => s.id !== sensorId);
+      renderSensorSidebar?.();
     }
 
     showActionMessage("Sensor deleted successfully!");
@@ -436,6 +468,9 @@ async function editSensor(sensorId) {
   sensorType.value = sensor.type;
   sensorLat.value = sensor.lat;
   sensorLng.value = sensor.lng;
+  installationDate.value = sensor.installationDate
+    ? new Date(sensor.installationDate).toISOString().split("T")[0]
+    : "";
   selectedFarmId = sensor.farmId;
 
   submitBtn.onclick = async () => {
@@ -452,10 +487,14 @@ async function editSensor(sensorId) {
       lng: Number(sensorLng.value),
       installationDate: isoDate,
       isActive: sensor.isActive,
+      farmId: selectedFarmId,
     };
 
-    await updateSensor(sensorId, sensorData);
-    sensorCard.style.display = "none";
+    const updated = await updateSensor(sensorId, sensorData);
+
+    if (updated) {
+      sensorCard.style.display = "none";
+    }
   };
 }
 
@@ -471,22 +510,37 @@ async function editMotor(motorId) {
   motorType.value = motor.type;
   motorLat.value = motor.lat;
   motorLng.value = motor.lng;
+  installationDateMotor.value = motor.installationDate
+    ? new Date(motor.installationDate).toISOString().split("T")[0]
+    : "";
   selectedFarmId = motor.farmId;
 
   motorSubmitBtn.onclick = async () => {
+    let isoDate = motor.installationDate;
+
+    if (installationDateMotor.value) {
+      isoDate = new Date(
+        installationDateMotor.value + "T00:00:00",
+      ).toISOString();
+    }
+
     const motorData = {
+      deviceCode: motorID.value.trim(),
       type: motorType.value,
       lat: Number(motorLat.value),
       lng: Number(motorLng.value),
-      installationDate: motor.installationDate,
+      installationDate: isoDate,
       isActive: motor.isActive,
+      farmId: selectedFarmId,
     };
 
-    await updateMotor(motorId, motorData);
-    motorCard.style.display = "none";
+    const updated = await updateMotor(motorId, motorData);
+
+    if (updated) {
+      motorCard.style.display = "none";
+    }
   };
 }
-
 async function updateMotor(motorId, motorData) {
   try {
     const response = await fetch(`http://localhost:5212/api/motor/${motorId}`, {
@@ -497,10 +551,14 @@ async function updateMotor(motorId, motorData) {
 
     if (!response.ok) throw new Error("Failed to update");
 
+    updateMotorMarkerLocally(motorId, motorData);
+
     showActionMessage("Motor updated successfully!");
+    return true;
   } catch (err) {
     console.error("Error updating motor:", err);
-    showActionMessage("Error updating motor ❌");
+    showErrorMessage("Error updating motor ❌");
+    return false;
   }
 }
 
@@ -517,10 +575,14 @@ async function updateSensor(sensorId, sensorData) {
 
     if (!response.ok) throw new Error("Failed to update");
 
+    updateSensorMarkerLocally(sensorId, sensorData);
+
     showActionMessage("Sensor updated successfully!");
+    return true;
   } catch (err) {
     console.error("Error updating sensor:", err);
-    showActionMessage("Error updating sensor ❌");
+    showErrorMessage("Error updating sensor ❌");
+    return false;
   }
 }
 

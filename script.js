@@ -267,11 +267,12 @@ async function saveSensor(sensorData) {
       throw new Error(errorText || "Failed to save sensor");
     }
 
-    const result = await response.json();
-    console.log("Saved sensor:", result);
+    const createdSensor = await response.json();
+
+    addSensorMarker(createdSensor);
+    renderSensorSidebar?.();
 
     showActionMessage("Sensor saved successfully!");
-    await loadSensorsFromDB();
     resetToolSelection();
     return true;
   } catch (err) {
@@ -280,7 +281,6 @@ async function saveSensor(sensorData) {
     return false;
   }
 }
-
 var OpenMotorInformationForm = (latt, lngg) => {
   motorCard.style.display = "block";
   motorLat.value = latt;
@@ -300,10 +300,12 @@ var OpenMotorInformationForm = (latt, lngg) => {
     };
 
     console.log("Sending motor:", motorData);
+    const saved = await saveMotor(motorData);
 
-    await saveMotor(motorData);
-    motorCard.style.display = "none";
-    hideMapMessage();
+    if (saved) {
+      motorCard.style.display = "none";
+      hideMapMessage();
+    }
   };
 };
 
@@ -320,15 +322,17 @@ async function saveMotor(motorData) {
       throw new Error(errorText || "Failed to save motor");
     }
 
-    const result = await response.json();
-    console.log("Saved motor:", result);
+    const createdMotor = await response.json();
+
+    addMotorMarker(createdMotor);
 
     showActionMessage("Motor saved successfully!");
-    await loadMotorsFromDB();
     resetToolSelection();
+    return true;
   } catch (err) {
     console.error("Error saving motor:", err);
     showErrorMessage(err.message || "Error saving motor");
+    return false;
   }
 }
 function isPointOnSegment(px, py, x1, y1, x2, y2) {
