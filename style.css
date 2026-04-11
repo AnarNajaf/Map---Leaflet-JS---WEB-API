@@ -1,6 +1,11 @@
+* {
+  font-family: "Inter", sans-serif;
+  font-optical-sizing: auto;
+}
 body {
   margin: 0;
   padding: 0;
+  font-size: 14px;
 }
 #map {
   height: 100vh;
@@ -14,22 +19,22 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%); /* center horizontally and vertically */
+  transform: translate(-50%, -50%);
   background-color: #ffffff;
-  padding: 25px 30px;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  padding: 28px 32px;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
   z-index: 1000;
-
-  /* initially hidden */
-  width: 300px;
-  font-family: Arial, sans-serif;
+  width: 320px;
+  font-family: "Inter", sans-serif;
   flex-direction: column;
   transition: all 0.3s ease;
+  border-top: 4px solid #216c3c;
 }
 #sensorCard {
   display: none;
 }
+
 #motorCard {
   display: none;
 }
@@ -37,70 +42,114 @@ body {
 /* Card header */
 .info_card h3 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   text-align: center;
-  color: #333;
-  font-size: 20px;
+  color: #216c3c;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
 /* Labels and inputs */
 .info_card label {
-  font-weight: 500;
-  margin-bottom: 5px;
-  color: #555;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
   display: block;
+  margin-bottom: 5px;
 }
 
 .info_card input[type="text"],
 .info_card input[type="date"],
 .info_card select {
   width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 15px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 9px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
   box-sizing: border-box;
   font-size: 14px;
+  color: #1f2937;
+  background-color: #f9fafb;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  outline: none;
 }
 
-/* Checkbox styling */
+.info_card input[type="text"]:focus,
+.info_card input[type="date"]:focus,
+.info_card select:focus {
+  border-color: #216c3c;
+  box-shadow: 0 0 0 3px rgba(33, 108, 60, 0.12);
+  background-color: #ffffff;
+}
+
+.info_card input[readonly] {
+  background-color: #f0f0f0;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .info_card input[type="checkbox"] {
-  margin-right: 5px;
-}
-
-/* Submit button */
-.info_card input[type="submit"] {
-  width: 100%;
-  padding: 10px;
-  background-color: #4caf50;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  font-weight: bold;
+  accent-color: #216c3c;
+  width: 15px;
+  height: 15px;
+  margin-right: 8px;
   cursor: pointer;
-  font-size: 16px;
-  /* transition: background 0.3s ease; */
 }
 
-.info_card input[type="submit"]:hover {
-  background-color: #45a049;
+.info_card label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #374151;
+  margin-bottom: 14px;
+  cursor: pointer;
 }
 
-/* Optional: close button */
+.info_card button[type="button"] {
+  width: 100%;
+  padding: 11px;
+  background-color: #216c3c;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.2s ease;
+  margin-top: 4px;
+}
+
+.info_card button[type="button"]:hover {
+  background-color: #1b5a2e;
+}
+
+.info_card button[type="button"]:disabled {
+  background-color: #6b9e7a;
+  cursor: not-allowed;
+}
+
 .info_card .close-btn {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 10px;
+  right: 14px;
   cursor: pointer;
   font-weight: bold;
-  font-size: 18px;
-  color: #888;
+  font-size: 20px;
+  color: #9ca3af;
+  line-height: 1;
+  transition: color 0.2s;
 }
 
 .info_card .close-btn:hover {
-  color: #333;
+  color: #216c3c;
 }
-
 .leaflet-control {
   margin: 0 !important;
 }
@@ -179,11 +228,14 @@ body {
 .detail-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  align-items: center;
+  padding: 5px 0;
   font-size: 13px;
+  border-bottom: 1px solid #f3f4f6;
 }
-.detail-row span {
-  font-weight: 700;
+.detail-row span:first-child {
+  color: #6b7280;
+  font-weight: 500;
 }
 .status {
   font-weight: 600;
@@ -254,24 +306,38 @@ input:checked + .slider:before {
 
 /* Sensor Readings */
 .sensor-readings h5 {
-  margin: 0 0 8px;
-  font-size: 14px;
-  color: #1f3a93;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #216c3c;
 }
 
 .reading-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  gap: 6px;
 }
 
 .reading-item {
   display: flex;
-  justify-content: space-between;
-  padding: 4px 8px;
-  background: #f2f6fb;
+  flex-direction: column;
+  padding: 8px 10px;
+  background: #f9fafb;
   border-radius: 8px;
+  border: 1px solid #e5e7eb;
   font-size: 12px;
+}
+.reading-label {
+  color: #9ca3af;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+.reading-item strong {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
 }
 /* .reading-item span{
   margin-left: 20px;
@@ -281,7 +347,11 @@ input:checked + .slider:before {
   font-size: 12px;
   margin-bottom: 4px;
 }
-
+.detail-value {
+  color: #1f2937;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
 .modal {
   font-family: "Segoe UI", sans-serif;
   position: fixed;
@@ -415,51 +485,67 @@ input:checked + .slider:before {
 
 /* Sidebar Sensor Actions */
 .sensor-sidebar {
-  font-family: "Lato", sans-serif;
+  font-family: "Inter", sans-serif;
   position: fixed;
   top: 80px;
   left: 10px;
-  width: 200px;
+  width: 180px;
   max-height: 75vh;
   overflow-y: auto;
   z-index: 999;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-top: 3px solid #216c3c;
 }
 
 .sensor-sidebar h3 {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  color: #1f2937;
+  margin: 0 0 10px 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #9ca3af;
 }
 
 .sensor-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
 }
 
 .sensor-item {
-  background: #003915;
-  color: white;
-  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
   cursor: pointer;
-  transition: 0.2s ease;
+  transition: all 0.15s ease;
+}
+.sensor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+.sensor-dot.active {
+  background: #216c3c;
 }
 
-.sensor-item:hover {
-  transform: translateY(-2px);
-  background: #00491b;
+.sensor-dot.inactive {
+  background: #e53935;
 }
-
 .sensor-item .sensor-code {
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.sensor-item .sensor-farm {
+  font-weight: 600;
   font-size: 13px;
-  opacity: 0.9;
+  color: #1f2937;
+}
+.sensor-item .sensor-type {
+  font-size: 11px;
+  color: #9ca3af;
 }

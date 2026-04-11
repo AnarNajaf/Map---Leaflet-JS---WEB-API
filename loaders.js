@@ -5,6 +5,11 @@ var selectedLayer = null;
 const missingSensors = new Set();
 const sensorUnsubscribers = {};
 function buildSensorPopup(sensor) {
+  const shortCode = sensor.deviceCode
+    ? sensor.deviceCode.slice(0, 10) +
+      (sensor.deviceCode.length > 10 ? "…" : "")
+    : sensor.id.slice(0, 10) + "…";
+
   return `
 <div class="sensor-popup">
   <div class="popup-header">
@@ -20,17 +25,15 @@ function buildSensorPopup(sensor) {
   </div>
 
   <div class="sensor-section sensor-details">
-    <div class="detail-row"><span>Code:</span>${sensor.deviceCode ?? sensor.id}</div>
-    <div class="detail-row"><span>Type:</span> ${sensor.type}</div>
-    <div class="detail-row"><span>Farm:</span> ${sensor.farmId}</div>
-    <div class="detail-row"><span>Installed:</span> ${new Date(sensor.installationDate).toLocaleDateString()}</div>
-    <div class="detail-row"><span>Status:</span> 
-      <div class="status ${sensor.isActive ? "active" : "inactive"}">
-        ${sensor.isActive ? "Active" : "Inactive"}
-      </div>
+    <div class="detail-row"><span>Code</span><span class="detail-value">${shortCode}</span></div>
+    <div class="detail-row"><span>Type</span><span class="detail-value">${sensor.type ?? "—"}</span></div>
+    <div class="detail-row"><span>Installed</span><span class="detail-value">${new Date(sensor.installationDate).toLocaleDateString()}</span></div>
+    <div class="detail-row">
+      <span>Status</span>
+      <div class="status ${sensor.isActive ? "active" : "inactive"}">${sensor.isActive ? "Active" : "Inactive"}</div>
     </div>
     <div class="detail-row switch-row">
-      <span class="switch-label">Turn On/Off</span>
+      <span>Turn On/Off</span>
       <label class="switch">
         <input type="checkbox"
           ${sensor.isActive ? "checked" : ""}
@@ -43,11 +46,26 @@ function buildSensorPopup(sensor) {
   <div class="sensor-section sensor-readings">
     <h5>Sensor Readings</h5>
     <div class="reading-grid">
-      <div class="reading-item"><span>🌡 Temperature</span><strong id="temp-${sensor.id}">N/A °C</strong></div>
-      <div class="reading-item"><span>💧 Soil Moisture</span><strong id="moisture-${sensor.id}">N/A %</strong></div>
-      <div class="reading-item"><span>⚗️ pH</span><strong id="ph-${sensor.id}">N/A</strong></div>
-      <div class="reading-item"><span>⚡ Conductivity</span><strong id="cond-${sensor.id}">N/A</strong></div>
-      <div class="reading-item"><span>🪫 Battery</span><strong id="battery-${sensor.id}">N/A %</strong></div>
+      <div class="reading-item">
+        <span class="reading-label">Temperature</span>
+        <strong id="temp-${sensor.id}">N/A °C</strong>
+      </div>
+      <div class="reading-item">
+        <span class="reading-label">Soil Moisture</span>
+        <strong id="moisture-${sensor.id}">N/A %</strong>
+      </div>
+      <div class="reading-item">
+        <span class="reading-label">pH</span>
+        <strong id="ph-${sensor.id}">N/A</strong>
+      </div>
+      <div class="reading-item">
+        <span class="reading-label">Conductivity</span>
+        <strong id="cond-${sensor.id}">N/A</strong>
+      </div>
+      <div class="reading-item">
+        <span class="reading-label">Battery</span>
+        <strong id="battery-${sensor.id}">N/A %</strong>
+      </div>
     </div>
   </div>
 </div>
@@ -70,19 +88,25 @@ function renderSensorSidebar() {
   sensorList.innerHTML = "";
 
   if (sensorMarkers.length === 0) {
-    sensorList.innerHTML = `<div style="color:#666;">No sensors</div>`;
+    sensorList.innerHTML = `<div style="font-size:12px; color:#9ca3af;">No sensors</div>`;
     return;
   }
 
   sensorMarkers.forEach((sensorObj) => {
     const sensor = sensorObj.data;
+    const shortCode = sensor.deviceCode
+      ? sensor.deviceCode.slice(0, 8)
+      : sensor.id.slice(0, 8);
 
     const item = document.createElement("div");
     item.className = "sensor-item";
 
     item.innerHTML = `
-      <div class="sensor-code">Sensor: ${sensor.deviceCode.slice(0, 6) ?? sensor.id.slice(0, 6)}</div>
-      <div class="sensor-farm">Farm: ${sensor.farmId.slice(0, 6)}</div>
+      <div class="sensor-dot ${sensor.isActive ? "active" : "inactive"}"></div>
+      <div>
+        <div class="sensor-code">${shortCode}</div>
+        <div class="sensor-type">${sensor.type ?? "Unknown"}</div>
+      </div>
     `;
 
     item.onclick = () => {
@@ -242,6 +266,10 @@ function removeSensorListener(sensorId) {
   }
 }
 function buildMotorPopup(motor) {
+  const shortCode = motor.deviceCode
+    ? motor.deviceCode.slice(0, 10) + (motor.deviceCode.length > 10 ? "…" : "")
+    : motor.id.slice(0, 10) + "…";
+
   return `
 <div class="sensor-popup">
   <div class="popup-header">
@@ -257,14 +285,21 @@ function buildMotorPopup(motor) {
   </div>
 
   <div class="sensor-section motor-details">
-    <div class="detail-row"><span>Code:</span> ${motor.deviceCode ?? motor.id}</div>
-    <div class="detail-row"><span>Type:</span> ${motor.type}</div>
-    <div class="detail-row"><span>Farm:</span> ${motor.farmId}</div>
-    <div class="detail-row"><span>Installed:</span> ${new Date(motor.installationDate).toLocaleDateString()}</div>
-    <div class="detail-row"><span>Status:</span> 
-      <div class="status ${motor.isActive ? "active" : "inactive"}">
-        ${motor.isActive ? "Active" : "Inactive"}
-      </div>
+    <div class="detail-row"><span>Code</span><span class="detail-value">${shortCode}</span></div>
+    <div class="detail-row"><span>Type</span><span class="detail-value">${motor.type ?? "—"}</span></div>
+    <div class="detail-row"><span>Installed</span><span class="detail-value">${new Date(motor.installationDate).toLocaleDateString()}</span></div>
+    <div class="detail-row">
+      <span>Status</span>
+      <div class="status ${motor.isActive ? "active" : "inactive"}">${motor.isActive ? "Active" : "Inactive"}</div>
+    </div>
+    <div class="detail-row switch-row">
+      <span>Turn On/Off</span>
+      <label class="switch">
+        <input type="checkbox"
+          ${motor.isActive ? "checked" : ""}
+          onchange="toggleMotor('${motor.id}', this.checked, this)">
+        <span class="slider round"></span>
+      </label>
     </div>
   </div>
 </div>
