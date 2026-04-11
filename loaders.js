@@ -32,15 +32,6 @@ function buildSensorPopup(sensor) {
       <span>Status</span>
       <div class="status ${sensor.isActive ? "active" : "inactive"}">${sensor.isActive ? "Active" : "Inactive"}</div>
     </div>
-    <div class="detail-row switch-row">
-      <span>Turn On/Off</span>
-      <label class="switch">
-        <input type="checkbox"
-          ${sensor.isActive ? "checked" : ""}
-          onchange="toggleSensor('${sensor.id}', this.checked, this)">
-        <span class="slider round"></span>
-      </label>
-    </div>
   </div>
 
   <div class="sensor-section sensor-readings">
@@ -71,7 +62,77 @@ function buildSensorPopup(sensor) {
 </div>
 `;
 }
+function attachOnlineStatusListener(sensor) {
+  if (!window.firebaseDb || !window.firestoreDoc || !window.firestoreOnSnapshot)
+    return;
 
+  if (!sensor.deviceCode) return;
+
+  const docRef = window.firestoreDoc(
+    window.firebaseDb,
+    "Sensors",
+    sensor.deviceCode,
+  );
+
+  // Store under a different key so it doesn't conflict with reading listener
+  const listenerKey = `online_${sensor.id}`;
+
+  if (sensorUnsubscribers[listenerKey]) {
+    sensorUnsubscribers[listenerKey]();
+    delete sensorUnsubscribers[listenerKey];
+  }
+
+  let initialized = false;
+
+  sensorUnsubscribers[listenerKey] = window.firestoreOnSnapshot(
+    docRef,
+    async (docSnap) => {
+      if (!docSnap.exists()) return;
+
+      const data = docSnap.data();
+      const isOnline = data.isOnline ?? false;
+
+      // Skip the first snapshot to avoid triggering on popup open
+      if (!initialized) {
+        initialized = true;
+        return;
+      }
+
+      // Only call backend if state actually differs
+      const sensorObj = sensorMarkers.find((s) => s.id === sensor.id);
+      if (!sensorObj) return;
+
+      if (sensorObj.data.isActive === isOnline) return;
+
+      try {
+        const response = await fetch(
+          `http://localhost:5212/api/sensor/${sensor.id}/status`,
+          {
+            method: "PATCH",
+            headers: authHeaders(),
+            body: JSON.stringify({ isActive: isOnline }),
+          },
+        );
+
+        if (!response.ok) {
+          const err = await response.text();
+          console.error("Failed to sync isOnline to backend:", err);
+          return;
+        }
+
+        // Update local state so UI reflects change
+        sensorObj.data.isActive = isOnline;
+        sensorObj.marker.setPopupContent(buildSensorPopup(sensorObj.data));
+        renderSensorSidebar?.();
+
+        console.log(`Sensor ${sensor.deviceCode} synced: isOnline=${isOnline}`);
+      } catch (err) {
+        console.error("Error syncing sensor status:", err);
+      }
+    },
+    (error) => console.error("isOnline listener error:", error),
+  );
+}
 function attachPolygonClick(layer, farmId) {
   layer.farmId = farmId;
   layer.on("click", function () {
