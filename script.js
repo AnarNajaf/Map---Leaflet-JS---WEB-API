@@ -169,11 +169,14 @@ var OpenSensorInformationForm = (latt, lngg) => {
       installationDate: isoDate,
       farmId: selectedFarmId,
     };
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Checking Firestore...";
 
     console.log("Sending sensor:", sensorData);
 
     const saved = await saveSensor(sensorData);
-
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Submit";
     if (saved) {
       sensorCard.style.display = "none";
       hideMapMessage();
@@ -298,10 +301,12 @@ var OpenMotorInformationForm = (latt, lngg) => {
       installationDate: isoDate,
       farmId: selectedFarmId,
     };
-
+    motorSubmitBtn.disabled = true;
+    motorSubmitBtn.textContent = "Saving...";
     console.log("Sending motor:", motorData);
     const saved = await saveMotor(motorData);
-
+    motorSubmitBtn.disabled = false;
+    motorSubmitBtn.textContent = "Submit";
     if (saved) {
       motorCard.style.display = "none";
       hideMapMessage();
