@@ -4,6 +4,7 @@ let motorMarkers = [];
 var selectedLayer = null;
 const missingSensors = new Set();
 const sensorUnsubscribers = {};
+const motorUnsubscribers = {};
 function buildSensorPopup(sensor) {
   const shortCode = sensor.deviceCode
     ? sensor.deviceCode.slice(0, 10) +
@@ -30,7 +31,9 @@ function buildSensorPopup(sensor) {
     <div class="detail-row"><span>Installed</span><span class="detail-value">${new Date(sensor.installationDate).toLocaleDateString()}</span></div>
     <div class="detail-row">
       <span>Status</span>
-      <div class="status ${sensor.isActive ? "active" : "inactive"}">${sensor.isActive ? "Active" : "Inactive"}</div>
+      <div id="status-${sensor.id}" class="status ${sensor.isActive ? "active" : "inactive"}">
+        ${sensor.isActive ? "Active" : "Inactive"}
+      </div>
     </div>
   </div>
 
@@ -62,9 +65,14 @@ function buildSensorPopup(sensor) {
 </div>
 `;
 }
-function attachOnlineStatusListener(sensor) {
-  if (!window.firebaseDb || !window.firestoreDoc || !window.firestoreOnSnapshot)
+function attachRealtimeSensorListener(sensor) {
+  if (
+    !window.firebaseDb ||
+    !window.firestoreDoc ||
+    !window.firestoreOnSnapshot
+  ) {
     return;
+  }
 
   if (!sensor.deviceCode) return;
 
@@ -74,63 +82,143 @@ function attachOnlineStatusListener(sensor) {
     sensor.deviceCode,
   );
 
-  // Store under a different key so it doesn't conflict with reading listener
-  const listenerKey = `online_${sensor.id}`;
-
-  if (sensorUnsubscribers[listenerKey]) {
-    sensorUnsubscribers[listenerKey]();
-    delete sensorUnsubscribers[listenerKey];
+  if (sensorUnsubscribers[sensor.id]) {
+    sensorUnsubscribers[sensor.id]();
+    delete sensorUnsubscribers[sensor.id];
   }
 
-  let initialized = false;
-
-  sensorUnsubscribers[listenerKey] = window.firestoreOnSnapshot(
+  sensorUnsubscribers[sensor.id] = window.firestoreOnSnapshot(
     docRef,
-    async (docSnap) => {
-      if (!docSnap.exists()) return;
+    (docSnap) => {
+      const tempEl = document.getElementById(`temp-${sensor.id}`);
+      const moistureEl = document.getElementById(`moisture-${sensor.id}`);
+      const phEl = document.getElementById(`ph-${sensor.id}`);
+      const condEl = document.getElementById(`cond-${sensor.id}`);
+      const batteryEl = document.getElementById(`battery-${sensor.id}`);
+      const statusEl = document.getElementById(`status-${sensor.id}`);
 
-      const data = docSnap.data();
-      const isOnline = data.isOnline ?? false;
+      if (!docSnap.exists()) {
+        if (tempEl) tempEl.textContent = "N/A °C";
+        if (moistureEl) moistureEl.textContent = "N/A %";
+        if (phEl) phEl.textContent = "N/A";
+        if (condEl) condEl.textContent = "N/A";
+        if (batteryEl) batteryEl.textContent = "N/A %";
 
-      // Skip the first snapshot to avoid triggering on popup open
-      if (!initialized) {
-        initialized = true;
+        if (statusEl) {
+          statusEl.textContent = "Inactive";
+          statusEl.className = "status inactive";
+        }
+
         return;
       }
 
-      // Only call backend if state actually differs
+      const live = docSnap.data();
+
+      sensor.temperature = live.temperature ?? null;
+      sensor.soilMoisture = live.soilMoisture ?? null;
+      sensor.ph = live.pH ?? null;
+      sensor.conductivity = live.conductivity ?? null;
+      sensor.batteryLevel = live.batteryLevel ?? null;
+
+      if (tempEl) tempEl.textContent = `${live.temperature ?? "N/A"} °C`;
+      if (moistureEl) {
+        moistureEl.textContent = `${live.soilMoisture ?? "N/A"} %`;
+      }
+      if (phEl) phEl.textContent = `${live.pH ?? "N/A"}`;
+      if (condEl) condEl.textContent = `${live.conductivity ?? "N/A"}`;
+      if (batteryEl) {
+        batteryEl.textContent = `${live.batteryLevel ?? "N/A"} %`;
+      }
+
+      const isOnline = live.isOnline ?? false;
+
+      if (statusEl) {
+        statusEl.textContent = isOnline ? "Active" : "Inactive";
+        statusEl.className = `status ${isOnline ? "active" : "inactive"}`;
+      }
+
       const sensorObj = sensorMarkers.find((s) => s.id === sensor.id);
-      if (!sensorObj) return;
-
-      if (sensorObj.data.isActive === isOnline) return;
-
-      try {
-        const response = await fetch(
-          `http://localhost:5212/api/sensor/${sensor.id}/status`,
-          {
-            method: "PATCH",
-            headers: authHeaders(),
-            body: JSON.stringify({ isActive: isOnline }),
-          },
-        );
-
-        if (!response.ok) {
-          const err = await response.text();
-          console.error("Failed to sync isOnline to backend:", err);
-          return;
-        }
-
-        // Update local state so UI reflects change
+      if (sensorObj) {
         sensorObj.data.isActive = isOnline;
-        sensorObj.marker.setPopupContent(buildSensorPopup(sensorObj.data));
-        renderSensorSidebar?.();
+      }
 
-        console.log(`Sensor ${sensor.deviceCode} synced: isOnline=${isOnline}`);
-      } catch (err) {
-        console.error("Error syncing sensor status:", err);
+      renderSensorSidebar?.();
+    },
+    (error) => console.error("Realtime Firestore error:", error),
+  );
+}
+function attachRealtimeMotorListener(motor) {
+  if (
+    !window.firebaseDb ||
+    !window.firestoreDoc ||
+    !window.firestoreOnSnapshot
+  ) {
+    return;
+  }
+
+  if (!motor.deviceCode) return;
+
+  const docRef = window.firestoreDoc(
+    window.firebaseDb,
+    "Motors",
+    motor.deviceCode,
+  );
+
+  if (motorUnsubscribers[motor.id]) {
+    motorUnsubscribers[motor.id]();
+    delete motorUnsubscribers[motor.id];
+  }
+
+  motorUnsubscribers[motor.id] = window.firestoreOnSnapshot(
+    docRef,
+    (docSnap) => {
+      const statusEl = document.getElementById(`motor-status-${motor.id}`);
+      const hoursEl = document.getElementById(`motor-hours-${motor.id}`);
+      const checkingEl = document.getElementById(`motor-checking-${motor.id}`);
+      const toggleEl = document.getElementById(`motor-toggle-${motor.id}`);
+
+      if (!docSnap.exists()) {
+        if (statusEl) {
+          statusEl.textContent = "Inactive";
+          statusEl.className = "status inactive";
+        }
+        if (hoursEl) hoursEl.textContent = "0 h";
+        if (checkingEl) checkingEl.textContent = "No";
+        if (toggleEl) toggleEl.checked = false;
+        return;
+      }
+
+      const live = docSnap.data();
+
+      const isActive = live.isActive ?? false;
+      const activeTimeHours = live.activeTimeHours ?? 0;
+      const checking = live.checking ?? false;
+
+      if (statusEl) {
+        statusEl.textContent = isActive ? "Active" : "Inactive";
+        statusEl.className = `status ${isActive ? "active" : "inactive"}`;
+      }
+
+      if (hoursEl) {
+        hoursEl.textContent = `${activeTimeHours} h`;
+      }
+
+      if (checkingEl) {
+        checkingEl.textContent = checking ? "Yes" : "No";
+      }
+
+      if (toggleEl) {
+        toggleEl.checked = isActive;
+      }
+
+      const motorObj = motorMarkers.find((m) => m.id === motor.id);
+      if (motorObj) {
+        motorObj.data.isActive = isActive;
+        motorObj.data.activeTimeHours = activeTimeHours;
+        motorObj.data.checking = checking;
       }
     },
-    (error) => console.error("isOnline listener error:", error),
+    (error) => console.error("Realtime Motor Firestore error:", error),
   );
 }
 function attachPolygonClick(layer, farmId) {
@@ -178,7 +266,42 @@ function renderSensorSidebar() {
     sensorList.appendChild(item);
   });
 }
+function renderMotorSidebar() {
+  const motorList = document.getElementById("motorList");
+  if (!motorList) return;
 
+  motorList.innerHTML = "";
+
+  if (motorMarkers.length === 0) {
+    motorList.innerHTML = `<div style="font-size:12px; color:#9ca3af;">No motors</div>`;
+    return;
+  }
+
+  motorMarkers.forEach((motorObj) => {
+    const motor = motorObj.data;
+    const shortCode = motor.deviceCode
+      ? motor.deviceCode.slice(0, 8)
+      : motor.id.slice(0, 8);
+
+    const item = document.createElement("div");
+    item.className = "sensor-item";
+
+    item.innerHTML = `
+      <div class="sensor-dot ${motor.isActive ? "active" : "inactive"}"></div>
+      <div>
+        <div class="sensor-code">${shortCode}</div>
+        <div class="sensor-type">${motor.type ?? "Unknown"}</div>
+      </div>
+    `;
+
+    item.onclick = () => {
+      map.setView([motor.lat, motor.lng], 18);
+      motorObj.marker.openPopup();
+    };
+
+    motorList.appendChild(item);
+  });
+}
 function showConfirm({ title, message, onConfirm }) {
   const modal = document.getElementById("confirmModal");
   const titleEl = document.getElementById("confirmTitle");
@@ -224,64 +347,6 @@ function showErrorMessage(message) {
 
 // ====================== LOADERS ======================
 
-function attachRealtimeSensorListener(sensor) {
-  if (
-    !window.firebaseDb ||
-    !window.firestoreDoc ||
-    !window.firestoreOnSnapshot
-  ) {
-    return;
-  }
-
-  if (!sensor.deviceCode) return;
-
-  const docRef = window.firestoreDoc(
-    window.firebaseDb,
-    "Sensors",
-    sensor.deviceCode,
-  );
-
-  if (sensorUnsubscribers[sensor.id]) {
-    sensorUnsubscribers[sensor.id]();
-    delete sensorUnsubscribers[sensor.id];
-  }
-
-  sensorUnsubscribers[sensor.id] = window.firestoreOnSnapshot(
-    docRef,
-    (docSnap) => {
-      const tempEl = document.getElementById(`temp-${sensor.id}`);
-      const moistureEl = document.getElementById(`moisture-${sensor.id}`);
-      const phEl = document.getElementById(`ph-${sensor.id}`);
-      const condEl = document.getElementById(`cond-${sensor.id}`);
-      const batteryEl = document.getElementById(`battery-${sensor.id}`);
-
-      if (!docSnap.exists()) {
-        if (tempEl) tempEl.textContent = "N/A °C";
-        if (moistureEl) moistureEl.textContent = "N/A %";
-        if (phEl) phEl.textContent = "N/A";
-        if (condEl) condEl.textContent = "N/A";
-        if (batteryEl) batteryEl.textContent = "N/A %";
-        return;
-      }
-
-      const live = docSnap.data();
-
-      sensor.temperature = live.temperature ?? null;
-      sensor.soilMoisture = live.soilMoisture ?? null;
-      sensor.ph = live.pH ?? null;
-      sensor.conductivity = live.conductivity ?? null;
-      sensor.batteryLevel = live.batteryLevel ?? null;
-
-      if (tempEl) tempEl.textContent = `${live.temperature ?? "N/A"} °C`;
-      if (moistureEl)
-        moistureEl.textContent = `${live.soilMoisture ?? "N/A"} %`;
-      if (phEl) phEl.textContent = `${live.pH ?? "N/A"}`;
-      if (condEl) condEl.textContent = `${live.conductivity ?? "N/A"}`;
-      if (batteryEl) batteryEl.textContent = `${live.batteryLevel ?? "N/A"} %`;
-    },
-    (error) => console.error("Realtime Firestore error:", error),
-  );
-}
 function addSensorMarker(sensor) {
   const marker = L.marker([sensor.lat, sensor.lng], {
     icon: sensorIcon,
@@ -331,6 +396,11 @@ function buildMotorPopup(motor) {
     ? motor.deviceCode.slice(0, 10) + (motor.deviceCode.length > 10 ? "…" : "")
     : motor.id.slice(0, 10) + "…";
 
+  const mode = motor.mode ?? "manual";
+  const isManual = mode === "manual";
+  const isScheduled = mode === "scheduled";
+  const isAuto = mode === "auto";
+
   return `
 <div class="sensor-popup">
   <div class="popup-header">
@@ -353,32 +423,78 @@ function buildMotorPopup(motor) {
       <span>Status</span>
       <div class="status ${motor.isActive ? "active" : "inactive"}">${motor.isActive ? "Active" : "Inactive"}</div>
     </div>
-    <div class="detail-row switch-row">
-      <span>Turn On/Off</span>
-      <label class="switch">
-        <input type="checkbox"
-          ${motor.isActive ? "checked" : ""}
-          onchange="toggleMotor('${motor.id}', this.checked, this)">
-        <span class="slider round"></span>
-      </label>
+  </div>
+
+  <div class="sensor-section">
+    <div class="mode-label">Control Mode</div>
+    <div class="mode-selector">
+      <button class="mode-btn ${isManual ? "active" : ""}" onclick="setMotorMode('${motor.id}', 'manual')">
+        Manual
+      </button>
+      <button class="mode-btn ${isScheduled ? "active" : ""}" onclick="setMotorMode('${motor.id}', 'scheduled')">
+        Scheduler
+      </button>
+      <button class="mode-btn auto ${isAuto ? "active" : ""}" onclick="setMotorMode('${motor.id}', 'auto')" disabled>
+        Auto
+      </button>
     </div>
+  </div>
+
+  <div class="sensor-section" id="mode-content-${motor.id}">
+    ${
+      isManual
+        ? `
+      <div class="detail-row switch-row">
+        <span>Turn On/Off</span>
+        <label class="switch">
+          <input type="checkbox"
+            ${motor.isActive ? "checked" : ""}
+            onchange="toggleMotor('${motor.id}', this.checked, this)">
+          <span class="slider round"></span>
+        </label>
+      </div>
+    `
+        : isScheduled
+          ? `
+<button class="schedule-popup-btn ${motor.schedule ? "schedule-set" : ""}"
+  onclick="openSchedulePanel('${motor.id}')">
+  ${
+    motor.schedule
+      ? motor.schedule.scheduleType === "time"
+        ? `Edit Schedule · ${motor.schedule.timeWindows?.length ?? 0} time window(s)`
+        : `Edit Schedule · Every ${motor.schedule.intervalHours}h · ${motor.schedule.durationMinutes}min`
+      : "Set Schedule"
+  }
+</button>
+`
+          : `
+      <div class="auto-coming-soon">
+        Fully automated mode coming soon
+      </div>
+    `
+    }
   </div>
 </div>
 `;
 }
 function addMotorMarker(motor) {
+  // fetch schedule and store on motor object
+  fetch(`http://localhost:5212/api/schedule/motor/${motor.id}`, {
+    headers: authHeaders(),
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((schedule) => {
+      motor.schedule = schedule;
+    })
+    .catch(() => {});
+
   const marker = L.marker([motor.lat, motor.lng], {
     icon: motorIcon,
   }).addTo(map);
 
-  marker.bindPopup(buildMotorPopup(motor));
+  marker.bindPopup(() => buildMotorPopup(motor));
 
-  const motorObj = {
-    id: motor.id,
-    marker,
-    data: motor,
-  };
-
+  const motorObj = { id: motor.id, marker, data: motor };
   motorMarkers.push(motorObj);
   return motorObj;
 }
@@ -391,6 +507,7 @@ function updateMotorMarkerLocally(motorId, patch) {
 
   motorObj.marker.setLatLng([motorObj.data.lat, motorObj.data.lng]);
   motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+  renderMotorSidebar?.();
 }
 async function loadFarmsFromDB() {
   try {
@@ -480,11 +597,12 @@ async function loadMotorsFromDB() {
     motors.forEach(addMotorMarker);
 
     console.log("Loaded motors:", motors);
+    renderMotorSidebar?.();
   } catch (err) {
     console.error("Error loading motors:", err);
   }
 }
-
+loadMotorsFromDB().then(() => loadSchedules());
 // ====================== SENSOR / MOTOR MANAGEMENT ======================
 
 async function deleteSensor(sensorId) {
@@ -543,6 +661,7 @@ async function performDeleteMotor(motorId) {
     if (motorObj) {
       map.removeLayer(motorObj.marker);
       motorMarkers = motorMarkers.filter((m) => m.id !== motorId);
+      renderMotorSidebar?.();
     }
 
     showActionMessage("Motor deleted successfully!");
@@ -708,4 +827,119 @@ function toggleSensor(sensorId, isActive, checkbox) {
     .finally(() => {
       checkbox.disabled = false;
     });
+}
+async function toggleMotor(motorId, isActive, checkbox) {
+  checkbox.checked = !isActive;
+
+  showConfirm({
+    title: isActive ? "Turn On Motor" : "Turn Off Motor",
+    message: isActive
+      ? "Do you want to turn on this motor?"
+      : "Do you want to turn off this motor?",
+    onConfirm: async () => {
+      checkbox.disabled = true;
+
+      try {
+        const motorObj = motorMarkers.find((m) => m.id === motorId);
+        if (!motorObj) {
+          throw new Error("Motor not found");
+        }
+
+        const response = await fetch(
+          `http://localhost:5212/api/motor/${motorId}/status`,
+          {
+            method: "PATCH",
+            headers: authHeaders(),
+            body: JSON.stringify({ isActive }),
+          },
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || "Failed to update motor status");
+        }
+
+        const result = await response.json();
+
+        if (
+          !window.firebaseDb ||
+          !window.firestoreDoc ||
+          !window.firestoreUpdateDoc
+        ) {
+          throw new Error("Firebase updateDoc is not initialized.");
+        }
+
+        if (!motorObj.data.deviceCode) {
+          throw new Error("Motor device code is missing.");
+        }
+
+        const motorDocRef = window.firestoreDoc(
+          window.firebaseDb,
+          "Motors",
+          motorObj.data.deviceCode,
+        );
+
+        await window.firestoreUpdateDoc(motorDocRef, {
+          isActive: result.isActive,
+        });
+
+        motorObj.data.isActive = result.isActive;
+
+        const statusEl = document.getElementById(`motor-status-${motorId}`);
+        if (statusEl) {
+          statusEl.textContent = result.isActive ? "Active" : "Inactive";
+          statusEl.className = `status ${result.isActive ? "active" : "inactive"}`;
+        }
+
+        checkbox.checked = result.isActive;
+        renderMotorSidebar?.();
+
+        showActionMessage(
+          result.isActive ? "Motor turned on ✅" : "Motor turned off ✅",
+        );
+      } catch (err) {
+        checkbox.checked = !isActive;
+        showErrorMessage(err.message || "Cannot change motor state ❌");
+      } finally {
+        checkbox.disabled = false;
+      }
+    },
+  });
+}
+async function setMotorMode(motorId, mode) {
+  try {
+    const res = await fetch(`http://localhost:5212/api/motor/${motorId}/mode`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ mode }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    const motorObj = motorMarkers.find((m) => m.id === motorId);
+    if (motorObj) {
+      motorObj.data.mode = mode;
+
+      // Entering scheduled/auto mode: turn the motor off so the automation owns it
+      if (mode !== "manual" && motorObj.data.isActive) {
+        await fetch(`http://localhost:5212/api/motor/${motorId}/status`, {
+          method: "PATCH",
+          headers: authHeaders(),
+          body: JSON.stringify({ isActive: false }),
+        });
+        if (motorObj.data.deviceCode && window.firebaseDb) {
+          const ref = window.firestoreDoc(window.firebaseDb, "Motors", motorObj.data.deviceCode);
+          await window.firestoreUpdateDoc(ref, { isActive: false }).catch(() => {});
+        }
+        motorObj.data.isActive = false;
+      }
+
+      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+      renderMotorSidebar?.();
+    }
+
+    showActionMessage(`Mode set to ${mode}.`);
+    loadSchedules();
+  } catch (err) {
+    showErrorMessage(err.message || "Failed to set mode.");
+  }
 }

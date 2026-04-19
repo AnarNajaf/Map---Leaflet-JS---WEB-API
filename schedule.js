@@ -33,6 +33,9 @@ async function loadSchedules() {
       if (res.ok) schedule = await res.json();
     } catch {}
 
+    // Keep the cached schedule on the motor object fresh
+    motorObj.data.schedule = schedule ?? null;
+
     if (!schedule) continue;
 
     const infoText =
@@ -54,7 +57,7 @@ async function loadSchedules() {
       <div class="schedule-info">${schedule.scheduleType === "interval" ? lastRanText : ""}</div>
       <div class="schedule-actions">
         <button class="schedule-btn toggle ${schedule.isEnabled ? "" : "disabled"}"
-          onclick="toggleSchedule('${schedule.id}')">
+          onclick="toggleSchedule('${schedule.id}', ${schedule.isEnabled})">
           ${schedule.isEnabled ? "Enabled" : "Disabled"}
         </button>
         <button class="schedule-btn delete"
@@ -67,13 +70,23 @@ async function loadSchedules() {
   }
 }
 
-async function toggleSchedule(scheduleId) {
+async function toggleSchedule(scheduleId, currentlyEnabled) {
   try {
     const res = await fetch(
       `http://localhost:5212/api/schedule/${scheduleId}/toggle`,
       { method: "PATCH", headers: authHeaders() }
     );
     if (!res.ok) throw new Error();
+
+    // Backend already updated motor mode — mirror it in the UI
+    const newEnabled = !currentlyEnabled;
+    const motorObj = motorMarkers.find((m) => m.data.schedule?.id === scheduleId);
+    if (motorObj) {
+      motorObj.data.mode = newEnabled ? "scheduled" : "manual";
+      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+      renderMotorSidebar?.();
+    }
+
     loadSchedules();
   } catch {
     showErrorMessage("Failed to toggle schedule.");
@@ -87,6 +100,16 @@ async function deleteSchedule(scheduleId) {
       { method: "DELETE", headers: authHeaders() }
     );
     if (!res.ok) throw new Error();
+
+    // Backend already reverted motor mode to "manual" — mirror it in the UI
+    const motorObj = motorMarkers.find((m) => m.data.schedule?.id === scheduleId);
+    if (motorObj) {
+      motorObj.data.mode = "manual";
+      motorObj.data.schedule = null;
+      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+      renderMotorSidebar?.();
+    }
+
     showActionMessage("Schedule removed.");
     loadSchedules();
   } catch {
@@ -302,8 +325,9 @@ function openSchedulePanel(motorId) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(await res.text());
+      const savedSchedule = await res.json();
 
-      // Turn motor OFF when entering scheduled mode
+      // Turn motor OFF — schedule owns it now
       await fetch(
         `http://localhost:5212/api/motor/${_scheduleMotorId}/status`,
         {
@@ -314,15 +338,21 @@ function openSchedulePanel(motorId) {
       );
 
       const motorObj = motorMarkers.find((m) => m.id === _scheduleMotorId);
-      if (motorObj?.data.deviceCode) {
-        const motorDocRef = window.firestoreDoc(
-          window.firebaseDb,
-          "Motors",
-          motorObj.data.deviceCode
-        );
-        await window.firestoreUpdateDoc(motorDocRef, { isActive: false });
+      if (motorObj) {
+        // Update all local state so popup and sidebar stay accurate
         motorObj.data.isActive = false;
+        motorObj.data.mode = "scheduled";
+        motorObj.data.schedule = savedSchedule;
+
+        if (motorObj.data.deviceCode && window.firebaseDb) {
+          const motorDocRef = window.firestoreDoc(
+            window.firebaseDb, "Motors", motorObj.data.deviceCode
+          );
+          await window.firestoreUpdateDoc(motorDocRef, { isActive: false }).catch(() => {});
+        }
+
         motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+        renderMotorSidebar?.();
       }
 
       modal.classList.add("hidden");
