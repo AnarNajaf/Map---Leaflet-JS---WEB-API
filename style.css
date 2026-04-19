@@ -991,6 +991,12 @@ input:checked + .slider:before {
   to   { filter: drop-shadow(0 0 10px #3b82f6) drop-shadow(0 0 18px #60a5fa); }
 }
 
+/* Already-linked sensor during selection mode */
+.sensor-already-linked {
+  filter: drop-shadow(0 0 6px #16a34a) !important;
+  animation: none !important;
+}
+
 /* Auto badge in motor sidebar */
 .motor-scheduled-badge.auto {
   background: #fef3c7;
