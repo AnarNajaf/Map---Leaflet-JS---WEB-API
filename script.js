@@ -39,6 +39,11 @@ document.getElementById("useTodayDate").addEventListener("change", function () {
 
 document.addEventListener("keydown", function (e) {
   if (e.key === "Escape") {
+    if (isSelectingSensorForAuto) {
+      stopSensorSelection();
+      return;
+    }
+
     if (colorPickerInput) {
       colorPickerInput.remove();
       colorPickerInput = null;
@@ -103,6 +108,9 @@ var isPlacingSensor = false;
 var isPlacingMotor = false;
 let isColoring = false;
 let colorPickerInput = null;
+let isSelectingSensorForAuto = false;
+let _autoSelectMotorId = null;
+let _autoSelectFarmId = null;
 
 function resetToolSelection() {
   selectedTool = null;

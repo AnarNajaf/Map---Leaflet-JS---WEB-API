@@ -851,16 +851,150 @@ input:checked + .slider:before {
 }
 
 .mode-btn.auto {
-  opacity: 0.4;
-  cursor: not-allowed;
+  opacity: 1;
+  cursor: pointer;
 }
 
-.auto-coming-soon {
-  text-align: center;
+/* ── Auto config panel ──────────────────────────────────────────────────────── */
+.auto-config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auto-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auto-sensor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.auto-no-sensors {
   font-size: 12px;
   color: #9ca3af;
-  padding: 10px 0;
   font-style: italic;
+}
+
+.auto-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.auto-chip em {
+  font-style: normal;
+  color: #374151;
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.auto-chip-remove {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 1px;
+}
+
+.auto-chip-remove:hover { color: #ef4444; }
+
+.auto-pick-btn {
+  width: 100%;
+  padding: 7px;
+  font-size: 13px;
+  color: #216c3c;
+  background: none;
+  border: 1px dashed #216c3c;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.auto-pick-btn:hover {
+  background: #f0fdf4;
+}
+
+.auto-thresholds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.threshold-row span:first-child {
+  flex: 1;
+  font-weight: 500;
+}
+
+.threshold-input {
+  width: 58px;
+  padding: 5px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  text-align: center;
+}
+
+.threshold-input:focus {
+  border-color: #216c3c;
+}
+
+.auto-save-btn {
+  width: 100%;
+  padding: 9px;
+  background: #216c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auto-save-btn:hover { background: #1b5a2e; }
+.auto-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Sensor marker highlighted for auto-linking */
+.sensor-selectable {
+  filter: drop-shadow(0 0 6px #3b82f6) drop-shadow(0 0 12px #3b82f6);
+  animation: pulse-select 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-select {
+  from { filter: drop-shadow(0 0 4px #3b82f6); }
+  to   { filter: drop-shadow(0 0 10px #3b82f6) drop-shadow(0 0 18px #60a5fa); }
+}
+
+/* Auto badge in motor sidebar */
+.motor-scheduled-badge.auto {
+  background: #fef3c7;
+  color: #b45309;
 }
 .schedule-popup-btn.schedule-set {
   background: #216c3c;

@@ -290,6 +290,7 @@ function renderMotorSidebar() {
       ? motor.deviceCode.slice(0, 9)
       : motor.id.slice(0, 9);
     const isScheduled = motor.mode === "scheduled";
+    const isAuto = motor.mode === "auto";
 
     const item = document.createElement("div");
     item.className = "sensor-item";
@@ -300,6 +301,7 @@ function renderMotorSidebar() {
         <div class="sensor-type">${motor.type ?? "Unknown"}</div>
       </div>
       ${isScheduled ? `<span class="motor-scheduled-badge">Scheduled</span>` : ""}
+      ${isAuto ? `<span class="motor-scheduled-badge auto">Auto</span>` : ""}
     `;
     item.onclick = () => {
       map.setView([motor.lat, motor.lng], 18);
@@ -379,6 +381,16 @@ function addSensorMarker(sensor) {
   marker.bindPopup(buildSensorPopup(sensor));
 
   marker.on("popupopen", () => {
+    if (isSelectingSensorForAuto) {
+      const validFarm = !_autoSelectFarmId || _autoSelectFarmId === sensor.farmId;
+      marker.closePopup();
+      if (validFarm) {
+        addSensorChipToAutoConfig(_autoSelectMotorId, sensor.deviceCode);
+      } else {
+        showErrorMessage("This sensor belongs to a different farm.");
+      }
+      return;
+    }
     attachRealtimeSensorListener(sensor);
   });
 
@@ -458,7 +470,7 @@ function buildMotorPopup(motor) {
       <button class="mode-btn ${isScheduled ? "active" : ""}" onclick="setMotorMode('${motor.id}', 'scheduled')">
         Scheduler
       </button>
-      <button class="mode-btn auto ${isAuto ? "active" : ""}" onclick="setMotorMode('${motor.id}', 'auto')" disabled>
+      <button class="mode-btn auto ${isAuto ? "active" : ""}" onclick="setMotorMode('${motor.id}', 'auto')">
         Auto
       </button>
     </div>
@@ -491,11 +503,7 @@ function buildMotorPopup(motor) {
   }
 </button>
 `
-          : `
-      <div class="auto-coming-soon">
-        Fully automated mode coming soon
-      </div>
-    `
+          : buildAutoConfigPanel(motor)
     }
   </div>
 </div>
@@ -1009,6 +1017,152 @@ async function toggleMotor(motorId, isActive, checkbox) {
     },
   });
 }
+// ── Auto mode config panel ────────────────────────────────────────────────────
+
+function buildAutoConfigPanel(motor) {
+  const chips = (motor.linkedSensorCodes ?? []).map(code => {
+    const sObj = sensorMarkers.find(s => s.data.deviceCode === code);
+    const moisture = sObj?.data?.soilMoisture;
+    return `<span class="auto-chip" data-code="${code}">
+      ${code.slice(0, 9)}${moisture != null ? ` <em>${moisture}%</em>` : ""}
+      <button class="auto-chip-remove" onclick="removeSensorFromAuto('${motor.id}','${code}')" title="Remove">×</button>
+    </span>`;
+  }).join("");
+
+  return `
+<div class="auto-config" id="auto-config-${motor.id}">
+  <div class="auto-section-label">Linked Sensors</div>
+  <div class="auto-sensor-chips" id="auto-sensors-${motor.id}">
+    ${chips || '<span class="auto-no-sensors">No sensors linked yet</span>'}
+  </div>
+  <button class="auto-pick-btn" onclick="startSensorSelection('${motor.id}','${motor.farmId}')">
+    + Pick sensors from map
+  </button>
+  <div class="auto-thresholds">
+    <div class="threshold-row">
+      <span>Turn ON below</span>
+      <input type="number" id="auto-lower-${motor.id}" min="0" max="100"
+        value="${motor.lowerThreshold ?? 30}" class="threshold-input" />
+      <span>%</span>
+    </div>
+    <div class="threshold-row">
+      <span>Turn OFF above</span>
+      <input type="number" id="auto-upper-${motor.id}" min="0" max="100"
+        value="${motor.upperThreshold ?? 60}" class="threshold-input" />
+      <span>%</span>
+    </div>
+    <div class="threshold-row">
+      <span>Max runtime</span>
+      <input type="number" id="auto-maxrt-${motor.id}" min="1" max="480"
+        value="${motor.autoMaxRuntimeMinutes ?? 60}" class="threshold-input" />
+      <span>min</span>
+    </div>
+  </div>
+  <button class="auto-save-btn" onclick="saveAutoConfig('${motor.id}')">Save Auto Config</button>
+</div>`;
+}
+
+function startSensorSelection(motorId, farmId) {
+  isSelectingSensorForAuto = true;
+  _autoSelectMotorId = motorId;
+  _autoSelectFarmId = farmId;
+  sensorMarkers.forEach(sObj => {
+    if (sObj.data.farmId === farmId) {
+      sObj.marker.getElement()?.classList.add("sensor-selectable");
+    }
+  });
+  showMapMessage("Click a sensor on the map to link it. Press Esc to cancel.");
+}
+
+function stopSensorSelection() {
+  isSelectingSensorForAuto = false;
+  _autoSelectMotorId = null;
+  _autoSelectFarmId = null;
+  sensorMarkers.forEach(sObj => sObj.marker.getElement()?.classList.remove("sensor-selectable"));
+  hideMapMessage();
+}
+
+function addSensorChipToAutoConfig(motorId, deviceCode) {
+  const chipsEl = document.getElementById(`auto-sensors-${motorId}`);
+  if (!chipsEl) { stopSensorSelection(); return; }
+
+  if (chipsEl.querySelector(`[data-code="${deviceCode}"]`)) {
+    showActionMessage("Sensor already linked.");
+    stopSensorSelection();
+    return;
+  }
+
+  const placeholder = chipsEl.querySelector(".auto-no-sensors");
+  if (placeholder) placeholder.remove();
+
+  const sObj = sensorMarkers.find(s => s.data.deviceCode === deviceCode);
+  const moisture = sObj?.data?.soilMoisture;
+
+  const chip = document.createElement("span");
+  chip.className = "auto-chip";
+  chip.dataset.code = deviceCode;
+  chip.innerHTML = `${deviceCode.slice(0, 9)}${moisture != null ? ` <em>${moisture}%</em>` : ""}
+    <button class="auto-chip-remove" onclick="removeSensorFromAuto('${motorId}','${deviceCode}')" title="Remove">×</button>`;
+  chipsEl.appendChild(chip);
+
+  stopSensorSelection();
+  showActionMessage(`Sensor ${deviceCode.slice(0, 9)} linked.`);
+}
+
+function removeSensorFromAuto(motorId, deviceCode) {
+  const chipsEl = document.getElementById(`auto-sensors-${motorId}`);
+  if (!chipsEl) return;
+  chipsEl.querySelector(`[data-code="${deviceCode}"]`)?.remove();
+  if (chipsEl.children.length === 0) {
+    chipsEl.innerHTML = '<span class="auto-no-sensors">No sensors linked yet</span>';
+  }
+}
+
+async function saveAutoConfig(motorId) {
+  const chipsEl = document.getElementById(`auto-sensors-${motorId}`);
+  const lowerInput = document.getElementById(`auto-lower-${motorId}`);
+  const upperInput = document.getElementById(`auto-upper-${motorId}`);
+  const maxrtInput = document.getElementById(`auto-maxrt-${motorId}`);
+  if (!chipsEl || !lowerInput || !upperInput || !maxrtInput) return;
+
+  const linkedSensorCodes = Array.from(chipsEl.querySelectorAll("[data-code]"))
+    .map(el => el.dataset.code);
+  const lower = parseFloat(lowerInput.value);
+  const upper = parseFloat(upperInput.value);
+  const maxrt = parseInt(maxrtInput.value) || 60;
+
+  if (lower >= upper) {
+    showErrorMessage("Lower threshold must be less than upper threshold.");
+    return;
+  }
+
+  const saveBtn = document.querySelector(`#auto-config-${motorId} .auto-save-btn`);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving..."; }
+
+  try {
+    const res = await fetch(`http://localhost:5212/api/motor/${motorId}/auto-config`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ linkedSensorCodes, lowerThreshold: lower, upperThreshold: upper, autoMaxRuntimeMinutes: maxrt }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const updated = await res.json();
+
+    const motorObj = motorMarkers.find(m => m.id === motorId);
+    if (motorObj) {
+      motorObj.data.linkedSensorCodes = updated.linkedSensorCodes;
+      motorObj.data.lowerThreshold = updated.lowerThreshold;
+      motorObj.data.upperThreshold = updated.upperThreshold;
+      motorObj.data.autoMaxRuntimeMinutes = updated.autoMaxRuntimeMinutes;
+      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+    }
+    showActionMessage("Auto config saved!");
+  } catch (err) {
+    showErrorMessage(err.message || "Failed to save auto config.");
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Save Auto Config"; }
+  }
+}
+
 async function setMotorMode(motorId, mode) {
   try {
     const res = await fetch(`http://localhost:5212/api/motor/${motorId}/mode`, {
@@ -1038,9 +1192,13 @@ async function setMotorMode(motorId, mode) {
 
       motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
       renderMotorSidebar?.();
+      // Open popup so the user sees the config panel immediately
+      if (mode === "auto") {
+        motorObj.marker.openPopup();
+      }
     }
 
-    showActionMessage(`Mode set to ${mode}.`);
+    if (mode !== "auto") showActionMessage(`Mode set to ${mode}.`);
     loadSchedules();
   } catch (err) {
     showErrorMessage(err.message || "Failed to set mode.");
