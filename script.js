@@ -95,7 +95,7 @@ L.tileLayer(
 
 loadFarmsFromDB();
 loadSensorsFromDB();
-loadMotorsFromDB();
+loadMotorsFromDB().then(() => loadSchedules());
 
 let userMarker = null;
 let selectedTool = null;
@@ -242,6 +242,24 @@ async function checkSensorExistsInFirestore(deviceCode) {
 
   return docSnap.exists();
 }
+async function checkMotorExistsInFirestore(deviceCode) {
+  const firebaseReady = await waitForFirebase();
+
+  if (!firebaseReady) {
+    throw new Error("Firebase is not initialized.");
+  }
+
+  const cleanCode = deviceCode.trim();
+
+  if (!cleanCode) {
+    throw new Error("Motor ID is required.");
+  }
+
+  const docRef = window.firestoreDoc(window.firebaseDb, "Motors", cleanCode);
+  const docSnap = await window.firestoreGetDoc(docRef);
+
+  return docSnap.exists();
+}
 
 async function saveSensor(sensorData) {
   try {
@@ -294,19 +312,24 @@ var OpenMotorInformationForm = (latt, lngg) => {
     const isoDate = new Date(dateValue + "T00:00:00").toISOString();
 
     const motorData = {
-      deviceCode: motorID.value,
+      deviceCode: motorID.value.trim(),
       type: motorType.value,
       lat: Number(latt),
       lng: Number(lngg),
       installationDate: isoDate,
       farmId: selectedFarmId,
     };
+
     motorSubmitBtn.disabled = true;
-    motorSubmitBtn.textContent = "Saving...";
+    motorSubmitBtn.textContent = "Checking Firestore...";
+
     console.log("Sending motor:", motorData);
+
     const saved = await saveMotor(motorData);
+
     motorSubmitBtn.disabled = false;
     motorSubmitBtn.textContent = "Submit";
+
     if (saved) {
       motorCard.style.display = "none";
       hideMapMessage();
@@ -316,6 +339,20 @@ var OpenMotorInformationForm = (latt, lngg) => {
 
 async function saveMotor(motorData) {
   try {
+    const cleanCode = motorData.deviceCode?.trim();
+
+    if (!cleanCode) {
+      throw new Error("Motor ID is required.");
+    }
+
+    const existsInFirestore = await checkMotorExistsInFirestore(cleanCode);
+
+    if (!existsInFirestore) {
+      throw new Error(`Motor ${cleanCode} not found in Firestore.`);
+    }
+
+    motorData.deviceCode = cleanCode;
+
     const response = await fetch("http://localhost:5212/api/motor", {
       method: "POST",
       headers: authHeaders(),

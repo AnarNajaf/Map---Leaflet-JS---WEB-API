@@ -37,16 +37,36 @@
         </div>
       </div>
     </div>
-    <div id="sensorSidebar" class="sensor-sidebar">
-      <h3>Connected Sensors</h3>
-      <div id="sensorList" class="sensor-list"></div>
+    <!-- Left sidebars -->
+    <div class="left-panels">
+      <div class="sidebar-card" id="sensorPanel">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Sensors</span>
+          <span class="sidebar-badge" id="sensorCount">0</span>
+          <button class="sidebar-toggle" id="sensorToggle" onclick="toggleSensorPanel()" title="Collapse">−</button>
+        </div>
+        <div id="sensorList" class="sidebar-list"></div>
+      </div>
+      <div class="sidebar-card" id="motorPanel">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Motors</span>
+          <span class="sidebar-badge" id="motorCount">0</span>
+          <button class="sidebar-toggle" id="motorToggle" onclick="toggleMotorPanel()" title="Collapse">−</button>
+        </div>
+        <div id="motorList" class="sidebar-list"></div>
+      </div>
     </div>
-    <div id="motorSidebar" class="sensor-sidebar motor-sidebar">
-      <h3>Connected Motors</h3>
-      <div id="motorList" class="sensor-list"></div>
-    </div>
+
+    <!-- System status bar (top-center) — shows active conditions like rain mode -->
+    <div id="systemStatusBar" class="system-status-bar hidden"></div>
+
+    <!-- Right schedule sidebar -->
     <div id="scheduleSidebar" class="schedule-sidebar">
-      <h3>Irrigation Schedules</h3>
+      <div class="schedule-sidebar-header">
+        <span class="schedule-sidebar-title">Schedules</span>
+        <button class="schedule-sidebar-toggle" id="scheduleSidebarToggle"
+          onclick="toggleScheduleSidebar()" title="Collapse">›</button>
+      </div>
       <div id="scheduleList" class="schedule-list"></div>
     </div>
     <div id="map"></div>
@@ -188,6 +208,23 @@
           </button>
         </div>
 
+        <!-- Active days selector -->
+        <div style="margin-top:16px; border-top:1px solid #e5e7eb; padding-top:14px;">
+          <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+            Active Days
+          </label>
+          <div style="display:flex; gap:4px; flex-wrap:wrap;">
+            <button type="button" class="day-btn all-days active" onclick="toggleAllDays(this)">All</button>
+            <button type="button" class="day-btn" data-day="1" onclick="toggleDayBtn(this)">Mon</button>
+            <button type="button" class="day-btn" data-day="2" onclick="toggleDayBtn(this)">Tue</button>
+            <button type="button" class="day-btn" data-day="3" onclick="toggleDayBtn(this)">Wed</button>
+            <button type="button" class="day-btn" data-day="4" onclick="toggleDayBtn(this)">Thu</button>
+            <button type="button" class="day-btn" data-day="5" onclick="toggleDayBtn(this)">Fri</button>
+            <button type="button" class="day-btn" data-day="6" onclick="toggleDayBtn(this)">Sat</button>
+            <button type="button" class="day-btn" data-day="0" onclick="toggleDayBtn(this)">Sun</button>
+          </div>
+        </div>
+
         <!-- Safety rules (collapsible) -->
         <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 14px;">
           <button type="button" onclick="toggleSafetyPanel()"
@@ -197,7 +234,7 @@
             <span>SAFETY RULES</span>
             <span id="safetyChevron" style="font-size:14px;">+</span>
           </button>
-          <div id="safetyPanel" style="display:none; margin-top:12px; display:flex; flex-direction:column; gap:12px;">
+          <div id="safetyPanel" style="display:none; margin-top:12px; flex-direction:column; gap:12px;">
 
             <div>
               <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:5px;">

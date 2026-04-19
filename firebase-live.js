@@ -4,6 +4,7 @@ import {
   doc,
   onSnapshot,
   getDoc,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -27,6 +28,9 @@ window.firebaseDb = db;
 window.firestoreDoc = doc;
 window.firestoreOnSnapshot = onSnapshot;
 window.firestoreGetDoc = getDoc;
+window.firestoreUpdateDoc = updateDoc;
 
 console.log("🔥 firestoreGetDoc set:", window.firestoreGetDoc);
+console.log("🔥 firestoreUpdateDoc set:", window.firestoreUpdateDoc);
+
 export { db };

@@ -1,3 +1,64 @@
+// ─── Weekday helpers ─────────────────────────────────────────────────────────
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function toggleAllDays(btn) {
+  if (btn.classList.contains("active")) return;
+  btn.classList.add("active");
+  document.querySelectorAll(".day-btn[data-day]").forEach((b) =>
+    b.classList.remove("active")
+  );
+}
+
+function toggleDayBtn(btn) {
+  document.querySelector(".day-btn.all-days")?.classList.remove("active");
+  btn.classList.toggle("active");
+  const anySelected =
+    document.querySelectorAll(".day-btn[data-day].active").length > 0;
+  if (!anySelected)
+    document.querySelector(".day-btn.all-days")?.classList.add("active");
+}
+
+function getSelectedDays() {
+  const allActive = document.querySelector(".day-btn.all-days")?.classList.contains("active");
+  if (allActive) return [];
+  const days = [];
+  document.querySelectorAll(".day-btn[data-day].active").forEach((b) =>
+    days.push(parseInt(b.dataset.day))
+  );
+  return days;
+}
+
+function fillDaysSelection(allowedDays) {
+  const allBtn = document.querySelector(".day-btn.all-days");
+  const dayBtns = document.querySelectorAll(".day-btn[data-day]");
+  if (!allowedDays || allowedDays.length === 0) {
+    allBtn?.classList.add("active");
+    dayBtns.forEach((b) => b.classList.remove("active"));
+  } else {
+    allBtn?.classList.remove("active");
+    dayBtns.forEach((b) => {
+      b.classList.toggle("active", allowedDays.includes(parseInt(b.dataset.day)));
+    });
+  }
+}
+
+function resetDaysSelection() {
+  document.querySelector(".day-btn.all-days")?.classList.add("active");
+  document.querySelectorAll(".day-btn[data-day]").forEach((b) =>
+    b.classList.remove("active")
+  );
+}
+
+function formatAllowedDays(allowedDays) {
+  if (!allowedDays || allowedDays.length === 0) return "Every day";
+  return allowedDays
+    .slice()
+    .sort((a, b) => a - b)
+    .map((d) => DAY_NAMES[d])
+    .join(", ");
+}
+
 // ─── Timezone helpers (Baku = UTC+4, no DST) ─────────────────────────────────
 
 function bakuToUtc(hhmm) {
@@ -38,6 +99,8 @@ async function loadSchedules() {
 
     if (!schedule) continue;
 
+    const daysText = formatAllowedDays(schedule.allowedDays);
+
     const infoText =
       schedule.scheduleType === "time"
         ? schedule.timeWindows
@@ -54,6 +117,7 @@ async function loadSchedules() {
     item.innerHTML = `
       <div class="schedule-motor">${shortCode}</div>
       <div class="schedule-info">${infoText}</div>
+      <div class="schedule-info">${daysText}</div>
       <div class="schedule-info">${schedule.scheduleType === "interval" ? lastRanText : ""}</div>
       <div class="schedule-actions">
         <button class="schedule-btn toggle ${schedule.isEnabled ? "" : "disabled"}"
@@ -151,8 +215,7 @@ function switchScheduleTab(type) {
 function addTimeWindow(startTime = "", durationMinutes = "") {
   const list = document.getElementById("scheduleWindowList");
   const row = document.createElement("div");
-  row.style.cssText =
-    "display:flex; gap:8px; align-items:center;";
+  row.style.cssText = "display:flex; gap:8px; align-items:center;";
   row.innerHTML = `
     <input type="time" value="${startTime}"
       style="flex:1; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; outline:none;" />
@@ -204,14 +267,14 @@ function fillSafetyFields(schedule) {
   document.getElementById("safetyFreshnessMinutes").value = schedule.dataFreshnessMinutes ?? 0;
 
   if (schedule.forbiddenFromHour != null) {
-    const bakuFrom = (schedule.forbiddenFromHour + 4) % 24;
+    const h = (schedule.forbiddenFromHour + 4) % 24;
     document.getElementById("safetyForbidFrom").value =
-      String(bakuFrom).padStart(2, "0") + ":00";
+      String(h).padStart(2, "0") + ":00";
   }
   if (schedule.forbiddenToHour != null) {
-    const bakuTo = (schedule.forbiddenToHour + 4) % 24;
+    const h = (schedule.forbiddenToHour + 4) % 24;
     document.getElementById("safetyForbidTo").value =
-      String(bakuTo).padStart(2, "0") + ":00";
+      String(h).padStart(2, "0") + ":00";
   }
 }
 
@@ -223,7 +286,6 @@ function getSafetyRules() {
   const fromVal = document.getElementById("safetyForbidFrom").value;
   const toVal   = document.getElementById("safetyForbidTo").value;
 
-  // Convert Baku hours to UTC (subtract 4)
   const forbiddenFromHour = fromVal
     ? ((parseInt(fromVal.split(":")[0]) - 4) + 24) % 24
     : null;
@@ -246,6 +308,7 @@ function openSchedulePanel(motorId) {
   document.getElementById("scheduleDuration").value = "";
   document.getElementById("scheduleWindowList").innerHTML = "";
   resetSafetyFields();
+  resetDaysSelection();
 
   // Pre-fill if a schedule already exists for this motor
   fetch(`http://localhost:5212/api/schedule/motor/${motorId}`, {
@@ -266,6 +329,7 @@ function openSchedulePanel(motorId) {
       }
 
       fillSafetyFields(schedule);
+      fillDaysSelection(schedule.allowedDays);
     })
     .catch(() => {});
 
@@ -283,6 +347,7 @@ function openSchedulePanel(motorId) {
     let payload;
 
     const safety = getSafetyRules();
+    const allowedDays = getSelectedDays();
 
     if (_currentScheduleTab === "time") {
       const windows = getTimeWindows();
@@ -296,6 +361,7 @@ function openSchedulePanel(motorId) {
         intervalHours: 0,
         durationMinutes: 0,
         timeWindows: windows,
+        allowedDays,
         ...safety,
       };
     } else {
@@ -311,6 +377,7 @@ function openSchedulePanel(motorId) {
         intervalHours: interval,
         durationMinutes: duration,
         timeWindows: [],
+        allowedDays,
         ...safety,
       };
     }

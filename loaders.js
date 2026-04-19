@@ -232,75 +232,99 @@ function attachPolygonClick(layer, farmId) {
 
 function renderSensorSidebar() {
   const sensorList = document.getElementById("sensorList");
+  const badge = document.getElementById("sensorCount");
   if (!sensorList) return;
 
   sensorList.innerHTML = "";
+  if (badge) badge.textContent = sensorMarkers.length;
 
   if (sensorMarkers.length === 0) {
-    sensorList.innerHTML = `<div style="font-size:12px; color:#9ca3af;">No sensors</div>`;
+    sensorList.innerHTML = `<div style="font-size:12px; color:#9ca3af; padding:6px 2px;">No sensors added</div>`;
     return;
   }
 
   sensorMarkers.forEach((sensorObj) => {
     const sensor = sensorObj.data;
     const shortCode = sensor.deviceCode
-      ? sensor.deviceCode.slice(0, 8)
-      : sensor.id.slice(0, 8);
+      ? sensor.deviceCode.slice(0, 9)
+      : sensor.id.slice(0, 9);
+    const bat = sensor.batteryLevel;
+    const batHtml = bat != null
+      ? `<span class="sensor-battery${bat < 20 ? " low" : ""}">${bat}%</span>`
+      : "";
 
     const item = document.createElement("div");
     item.className = "sensor-item";
-
     item.innerHTML = `
       <div class="sensor-dot ${sensor.isActive ? "active" : "inactive"}"></div>
-      <div>
+      <div class="sensor-info">
         <div class="sensor-code">${shortCode}</div>
         <div class="sensor-type">${sensor.type ?? "Unknown"}</div>
       </div>
+      ${batHtml}
     `;
-
     item.onclick = () => {
       map.setView([sensor.lat, sensor.lng], 18);
       sensorObj.marker.openPopup();
     };
-
     sensorList.appendChild(item);
   });
 }
+
 function renderMotorSidebar() {
   const motorList = document.getElementById("motorList");
+  const badge = document.getElementById("motorCount");
   if (!motorList) return;
 
   motorList.innerHTML = "";
+  if (badge) badge.textContent = motorMarkers.length;
 
   if (motorMarkers.length === 0) {
-    motorList.innerHTML = `<div style="font-size:12px; color:#9ca3af;">No motors</div>`;
+    motorList.innerHTML = `<div style="font-size:12px; color:#9ca3af; padding:6px 2px;">No motors added</div>`;
     return;
   }
 
   motorMarkers.forEach((motorObj) => {
     const motor = motorObj.data;
     const shortCode = motor.deviceCode
-      ? motor.deviceCode.slice(0, 8)
-      : motor.id.slice(0, 8);
+      ? motor.deviceCode.slice(0, 9)
+      : motor.id.slice(0, 9);
+    const isScheduled = motor.mode === "scheduled";
 
     const item = document.createElement("div");
     item.className = "sensor-item";
-
     item.innerHTML = `
       <div class="sensor-dot ${motor.isActive ? "active" : "inactive"}"></div>
-      <div>
+      <div class="sensor-info">
         <div class="sensor-code">${shortCode}</div>
         <div class="sensor-type">${motor.type ?? "Unknown"}</div>
       </div>
+      ${isScheduled ? `<span class="motor-scheduled-badge">Scheduled</span>` : ""}
     `;
-
     item.onclick = () => {
       map.setView([motor.lat, motor.lng], 18);
       motorObj.marker.openPopup();
     };
-
     motorList.appendChild(item);
   });
+}
+
+function toggleSensorPanel() {
+  const panel = document.getElementById("sensorPanel");
+  const btn = document.getElementById("sensorToggle");
+  if (!panel || !btn) return;
+  panel.classList.toggle("collapsed");
+  btn.textContent = panel.classList.contains("collapsed") ? "+" : "−";
+  btn.title = panel.classList.contains("collapsed") ? "Expand" : "Collapse";
+}
+
+function toggleMotorPanel() {
+  const panel = document.getElementById("motorPanel");
+  const btn = document.getElementById("motorToggle");
+  if (!panel || !btn) return;
+  panel.classList.toggle("collapsed");
+  btn.textContent = panel.classList.contains("collapsed") ? "+" : "−";
+  btn.title = panel.classList.contains("collapsed") ? "Expand" : "Collapse";
 }
 function showConfirm({ title, message, onConfirm }) {
   const modal = document.getElementById("confirmModal");
@@ -602,7 +626,86 @@ async function loadMotorsFromDB() {
     console.error("Error loading motors:", err);
   }
 }
-loadMotorsFromDB().then(() => loadSchedules());
+// NOTE: loadMotorsFromDB() is called in script.js after map init — not here
+// ====================== SCHEDULE SIDEBAR TOGGLE ======================
+
+function toggleScheduleSidebar() {
+  const panel = document.getElementById("scheduleSidebar");
+  const btn = document.getElementById("scheduleSidebarToggle");
+  if (!panel || !btn) return;
+  panel.classList.toggle("collapsed");
+  const isCollapsed = panel.classList.contains("collapsed");
+  btn.textContent = isCollapsed ? "‹" : "›";
+  btn.title = isCollapsed ? "Expand" : "Collapse";
+}
+
+// ====================== SYSTEM STATUS BAR =======================
+
+let _statusUnsubscribe = null;
+
+function listenToSystemStatus() {
+  if (!window.firebaseDb || !window.firestoreDoc || !window.firestoreOnSnapshot) {
+    setTimeout(listenToSystemStatus, 600);
+    return;
+  }
+  if (_statusUnsubscribe) _statusUnsubscribe();
+  const ref = window.firestoreDoc(window.firebaseDb, "SystemStatus", "global");
+  _statusUnsubscribe = window.firestoreOnSnapshot(
+    ref,
+    (snap) => updateStatusBar(snap.exists() ? snap.data() : {}),
+    () => {}
+  );
+}
+
+function updateStatusBar(status) {
+  const bar = document.getElementById("systemStatusBar");
+  if (!bar) return;
+  bar.innerHTML = "";
+
+  if (status.rainMode) {
+    const ic = document.createElement("span");
+    ic.className = "status-icon rain";
+    ic.title = "Rain detected — irrigation blocked";
+    ic.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 17.58A5 5 0 0018 8h-1.26A8 8 0 104 16.25"/>
+      <line x1="8" y1="19" x2="8" y2="21"/><line x1="8" y1="13" x2="8" y2="15"/>
+      <line x1="12" y1="15" x2="12" y2="17"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="16" y1="17" x2="16" y2="19"/>
+    </svg>&nbsp;Rain Mode`;
+    bar.appendChild(ic);
+  }
+
+  if (status.tankLow) {
+    const ic = document.createElement("span");
+    ic.className = "status-icon tank-low";
+    ic.title = "Water tank level low";
+    ic.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+    </svg>&nbsp;Low Tank`;
+    bar.appendChild(ic);
+  }
+
+  if (status.irrigationBlocked) {
+    const ic = document.createElement("span");
+    ic.className = "status-icon blocked";
+    ic.title = "Irrigation manually blocked";
+    ic.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+    </svg>&nbsp;Blocked`;
+    bar.appendChild(ic);
+  }
+
+  bar.classList.toggle("hidden", bar.children.length === 0);
+}
+
+listenToSystemStatus();
+
 // ====================== SENSOR / MOTOR MANAGEMENT ======================
 
 async function deleteSensor(sensorId) {
