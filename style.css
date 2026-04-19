@@ -1002,6 +1002,48 @@ input:checked + .slider:before {
   background: #fef3c7;
   color: #b45309;
 }
+
+/* ── Auto section in schedule sidebar ───────────────────────────────────────── */
+.auto-sidebar-divider {
+  font-size: 10px;
+  font-weight: 700;
+  color: #b45309;
+  letter-spacing: 0.8px;
+  padding: 8px 2px 4px;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 4px;
+}
+
+.auto-schedule-item {
+  border-left: 2px solid #f59e0b;
+}
+
+.auto-sensor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.auto-sensor-tag {
+  background: #fef9c3;
+  color: #78350f;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+
+.auto-sensor-tag b {
+  color: #15803d;
+}
+
+.auto-status {
+  color: #6b7280;
+}
+
+.auto-status.active {
+  color: #16a34a;
+  font-weight: 600;
+}
 .schedule-popup-btn.schedule-set {
   background: #216c3c;
   color: white;

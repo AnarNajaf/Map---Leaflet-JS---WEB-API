@@ -80,6 +80,7 @@ async function loadSchedules() {
   list.innerHTML = "";
 
   for (const motorObj of motorMarkers) {
+    if (motorObj.data.mode === "auto") continue; // handled by renderAutoSidebar
     const motor = motorObj.data;
     const shortCode = motor.deviceCode
       ? motor.deviceCode.slice(0, 8)
@@ -132,6 +133,98 @@ async function loadSchedules() {
     `;
     list.appendChild(item);
   }
+
+  renderAutoSidebar();
+}
+
+function renderAutoSidebar() {
+  const list = document.getElementById("scheduleList");
+  if (!list) return;
+
+  // Remove previous auto section
+  list.querySelector(".auto-sidebar-section")?.remove();
+
+  const autoMotors = motorMarkers.filter(
+    (m) => m.data.mode === "auto" && (m.data.linkedSensorCodes?.length ?? 0) > 0
+  );
+  if (autoMotors.length === 0) return;
+
+  const section = document.createElement("div");
+  section.className = "auto-sidebar-section";
+
+  if (list.children.length > 0) {
+    const divider = document.createElement("div");
+    divider.className = "auto-sidebar-divider";
+    divider.textContent = "AUTO MODE";
+    section.appendChild(divider);
+  }
+
+  for (const motorObj of autoMotors) {
+    const motor = motorObj.data;
+    const shortCode = motor.deviceCode
+      ? motor.deviceCode.slice(0, 8)
+      : motor.id.slice(0, 8);
+
+    const sensorBits = (motor.linkedSensorCodes ?? []).map((code) => {
+      const sObj = sensorMarkers.find((s) => s.data.deviceCode === code);
+      const m = sObj?.data?.soilMoisture;
+      return `<span class="auto-sensor-tag">${code.slice(0, 7)}${m != null ? ` <b>${m}%</b>` : ""}</span>`;
+    }).join("");
+
+    const statusText = motor.isActive ? "Irrigating" : "Monitoring";
+    const statusClass = motor.isActive ? "active" : "";
+
+    const item = document.createElement("div");
+    item.className = "schedule-item auto-schedule-item";
+    item.innerHTML = `
+      <div class="schedule-motor">${shortCode}</div>
+      <div class="schedule-info auto-sensor-row">${sensorBits || "—"}</div>
+      <div class="schedule-info">ON &lt; ${motor.lowerThreshold}% · OFF &gt; ${motor.upperThreshold}%</div>
+      <div class="schedule-info auto-status ${statusClass}">${statusText}</div>
+      <div class="schedule-actions">
+        <button class="schedule-btn toggle"
+          onclick="pauseAutoMode('${motor.id}')">
+          Pause
+        </button>
+        <button class="schedule-btn"
+          style="background:#f3f4f6; color:#374151; border-color:#d1d5db;"
+          onclick="editAutoConfig('${motor.id}')">
+          Edit
+        </button>
+      </div>
+    `;
+    section.appendChild(item);
+  }
+
+  list.appendChild(section);
+}
+
+async function pauseAutoMode(motorId) {
+  try {
+    const res = await fetch(`http://localhost:5212/api/motor/${motorId}/mode`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ mode: "manual" }),
+    });
+    if (!res.ok) throw new Error();
+    const motorObj = motorMarkers.find((m) => m.id === motorId);
+    if (motorObj) {
+      motorObj.data.mode = "manual";
+      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
+      renderMotorSidebar?.();
+    }
+    showActionMessage("Auto mode paused. Motor is now in manual mode.");
+    loadSchedules();
+  } catch {
+    showErrorMessage("Failed to pause auto mode.");
+  }
+}
+
+function editAutoConfig(motorId) {
+  const motorObj = motorMarkers.find((m) => m.id === motorId);
+  if (!motorObj) return;
+  map.setView([motorObj.data.lat, motorObj.data.lng], 18);
+  motorObj.marker.openPopup();
 }
 
 async function toggleSchedule(scheduleId, currentlyEnabled) {

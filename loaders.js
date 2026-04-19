@@ -1206,7 +1206,10 @@ async function saveAutoConfig(motorId) {
         autoMaxRuntimeMinutes: p.autoMaxRuntimeMinutes,
       }),
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`[${res.status}] ${body || "Server error"}`);
+    }
     const updated = await res.json();
 
     const motorObj = motorMarkers.find(m => m.id === motorId);
@@ -1224,7 +1227,19 @@ async function saveAutoConfig(motorId) {
     if (motorObj2) motorObj2.marker.setPopupContent(buildMotorPopup(motorObj2.data));
 
     renderMotorSidebar?.();
+    renderAutoSidebar?.();
     showActionMessage("Auto config saved!");
+
+    // Show saved state on button briefly
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "✓ Saved";
+      saveBtn.style.background = "#16a34a";
+      setTimeout(() => {
+        saveBtn.textContent = "Save Auto Config";
+        saveBtn.style.background = "";
+      }, 2000);
+    }
   } catch (err) {
     showErrorMessage(err.message || "Failed to save auto config.");
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Save Auto Config"; }
