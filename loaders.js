@@ -503,7 +503,16 @@ function buildMotorPopup(motor) {
   }
 </button>
 `
-          : buildAutoConfigPanel(motor)
+          : (() => {
+              const hasConfig = (motor.linkedSensorCodes?.length ?? 0) > 0;
+              const label = hasConfig
+                ? `Auto · ${motor.linkedSensorCodes.length} sensor(s) · ${motor.lowerThreshold}–${motor.upperThreshold}%`
+                : "Configure Auto Mode";
+              return `<button class="schedule-popup-btn ${hasConfig ? "schedule-set" : ""}"
+                onclick="openAutoConfigPanel('${motor.id}')">
+                ${label}
+              </button>`;
+            })()
     }
   </div>
 </div>
@@ -1017,10 +1026,12 @@ async function toggleMotor(motorId, isActive, checkbox) {
     },
   });
 }
-// ── Auto mode config panel ────────────────────────────────────────────────────
-// Pending state lives in JS (not DOM) so popup can close/reopen without losing data
+// ── Auto mode config panel (modal-based) ────────────────────────────────────
+// All state lives in _pendingAutoConfigs (JS object), never in DOM.
+// The modal (#autoModal) is shared — only one motor at a time.
 
 const _pendingAutoConfigs = {};
+let _autoModalMotorId = null;
 
 function _getOrInitPending(motorId) {
   if (!_pendingAutoConfigs[motorId]) {
@@ -1036,90 +1047,85 @@ function _getOrInitPending(motorId) {
   return _pendingAutoConfigs[motorId];
 }
 
-function _snapshotDomToPending(motorId) {
-  const p = _pendingAutoConfigs[motorId];
-  if (!p) return;
-  const lowerInput = document.getElementById(`auto-lower-${motorId}`);
-  const upperInput = document.getElementById(`auto-upper-${motorId}`);
-  const maxrtInput = document.getElementById(`auto-maxrt-${motorId}`);
-  const chipsEl   = document.getElementById(`auto-sensors-${motorId}`);
-  if (lowerInput) p.lowerThreshold = parseFloat(lowerInput.value) || p.lowerThreshold;
-  if (upperInput) p.upperThreshold = parseFloat(upperInput.value) || p.upperThreshold;
-  if (maxrtInput) p.autoMaxRuntimeMinutes = parseInt(maxrtInput.value) || p.autoMaxRuntimeMinutes;
-  if (chipsEl) p.linkedSensorCodes = Array.from(chipsEl.querySelectorAll("[data-code]")).map(el => el.dataset.code);
-}
-
-function buildAutoConfigPanel(motor) {
-  const p = _pendingAutoConfigs[motor.id] ?? motor;
-  const codes = p.linkedSensorCodes ?? motor.linkedSensorCodes ?? [];
-
-  const chips = codes.map(code => {
-    const sObj = sensorMarkers.find(s => s.data.deviceCode === code);
-    const moisture = sObj?.data?.soilMoisture;
-    return `<span class="auto-chip" data-code="${code}">
-      ${code.slice(0, 9)}${moisture != null ? ` <em>${moisture}%</em>` : ""}
-      <button class="auto-chip-remove" onclick="removeSensorFromAuto('${motor.id}','${code}')" title="Remove">×</button>
-    </span>`;
-  }).join("");
-
-  return `
-<div class="auto-config" id="auto-config-${motor.id}">
-  <div class="auto-section-label">Linked Sensors</div>
-  <div class="auto-sensor-chips" id="auto-sensors-${motor.id}">
-    ${chips || '<span class="auto-no-sensors">No sensors linked yet</span>'}
-  </div>
-  <button class="auto-pick-btn" onclick="startSensorSelection('${motor.id}','${motor.farmId}')">
-    + Pick sensors from map
-  </button>
-  <div class="auto-thresholds">
-    <div class="threshold-row">
-      <span>Turn ON below</span>
-      <input type="number" id="auto-lower-${motor.id}" min="0" max="100"
-        value="${p.lowerThreshold ?? motor.lowerThreshold ?? 30}" class="threshold-input" />
-      <span>%</span>
-    </div>
-    <div class="threshold-row">
-      <span>Turn OFF above</span>
-      <input type="number" id="auto-upper-${motor.id}" min="0" max="100"
-        value="${p.upperThreshold ?? motor.upperThreshold ?? 60}" class="threshold-input" />
-      <span>%</span>
-    </div>
-    <div class="threshold-row">
-      <span>Max runtime</span>
-      <input type="number" id="auto-maxrt-${motor.id}" min="1" max="480"
-        value="${p.autoMaxRuntimeMinutes ?? motor.autoMaxRuntimeMinutes ?? 60}" class="threshold-input" />
-      <span>min</span>
-    </div>
-  </div>
-  <button class="auto-save-btn" onclick="saveAutoConfig('${motor.id}')">Save Auto Config</button>
-</div>`;
-}
-
-function startSensorSelection(motorId, farmId) {
+function openAutoConfigPanel(motorId) {
   const motorObj = motorMarkers.find(m => m.id === motorId);
   if (!motorObj) return;
 
-  // Snapshot any values the user already typed into the open popup
-  _getOrInitPending(motorId);
-  _snapshotDomToPending(motorId);
+  _autoModalMotorId = motorId;
+  const p = _getOrInitPending(motorId);
 
-  // Close popup so the map is fully visible for clicking sensors
-  motorObj.marker.closePopup();
+  // Pre-fill threshold inputs
+  document.getElementById('autoModalLower').value = p.lowerThreshold;
+  document.getElementById('autoModalUpper').value = p.upperThreshold;
+  document.getElementById('autoModalMaxrt').value = p.autoMaxRuntimeMinutes;
+
+  _refreshAutoModal();
+
+  // Wire buttons
+  document.getElementById('autoCancelBtn').onclick = () => {
+    document.getElementById('autoModal').classList.add('hidden');
+    _autoModalMotorId = null;
+  };
+  document.getElementById('autoSaveBtn').onclick = () => saveAutoConfig(motorId);
+
+  document.getElementById('autoModal').classList.remove('hidden');
+}
+
+function _refreshAutoModal() {
+  const motorId = _autoModalMotorId;
+  if (!motorId) return;
+  const p = _pendingAutoConfigs[motorId];
+  if (!p) return;
+
+  const container = document.getElementById('autoModalSensors');
+  if (!container) return;
+
+  if (p.linkedSensorCodes.length === 0) {
+    container.innerHTML = '<span class="auto-no-sensors">No sensors linked yet</span>';
+    return;
+  }
+
+  container.innerHTML = p.linkedSensorCodes.map(code => {
+    const sObj = sensorMarkers.find(s => s.data.deviceCode === code);
+    const moisture = sObj?.data?.soilMoisture;
+    return `<span class="auto-chip" data-code="${code}">
+      ${code.slice(0, 12)}${moisture != null ? ` <em>${moisture}%</em>` : ''}
+      <button class="auto-chip-remove" onclick="removeSensorFromAuto('${code}')" title="Remove">×</button>
+    </span>`;
+  }).join('');
+}
+
+function startSensorSelectionForAuto() {
+  const motorId = _autoModalMotorId;
+  if (!motorId) return;
+
+  const motorObj = motorMarkers.find(m => m.id === motorId);
+  if (!motorObj) return;
+
+  // Save current modal values before hiding
+  const p = _pendingAutoConfigs[motorId];
+  p.lowerThreshold    = parseFloat(document.getElementById('autoModalLower').value) || p.lowerThreshold;
+  p.upperThreshold    = parseFloat(document.getElementById('autoModalUpper').value) || p.upperThreshold;
+  p.autoMaxRuntimeMinutes = parseInt(document.getElementById('autoModalMaxrt').value) || p.autoMaxRuntimeMinutes;
+
+  // Hide modal so the map is fully visible
+  document.getElementById('autoModal').classList.add('hidden');
 
   isSelectingSensorForAuto = true;
   _autoSelectMotorId = motorId;
-  _autoSelectFarmId = farmId;
+  _autoSelectFarmId  = motorObj.data.farmId;
 
-  const count = _pendingAutoConfigs[motorId].linkedSensorCodes.length;
+  // Highlight sensors from same farm
   sensorMarkers.forEach(sObj => {
-    if (sObj.data.farmId === farmId) {
-      sObj.marker.getElement()?.classList.add("sensor-selectable");
-      if (_pendingAutoConfigs[motorId].linkedSensorCodes.includes(sObj.data.deviceCode)) {
-        sObj.marker.getElement()?.classList.add("sensor-already-linked");
+    if (sObj.data.farmId === motorObj.data.farmId) {
+      sObj.marker.getElement()?.classList.add('sensor-selectable');
+      if (p.linkedSensorCodes.includes(sObj.data.deviceCode)) {
+        sObj.marker.getElement()?.classList.add('sensor-already-linked');
       }
     }
   });
-  _updateSelectionMessage(count);
+
+  _updateSelectionMessage(p.linkedSensorCodes.length);
 }
 
 function _updateSelectionMessage(count) {
@@ -1127,24 +1133,19 @@ function _updateSelectionMessage(count) {
 }
 
 function stopSensorSelection() {
-  const motorId = _autoSelectMotorId;
-
   isSelectingSensorForAuto = false;
   _autoSelectMotorId = null;
-  _autoSelectFarmId = null;
+  _autoSelectFarmId  = null;
 
   sensorMarkers.forEach(sObj => {
-    sObj.marker.getElement()?.classList.remove("sensor-selectable", "sensor-already-linked");
+    sObj.marker.getElement()?.classList.remove('sensor-selectable', 'sensor-already-linked');
   });
   hideMapMessage();
 
-  // Reopen motor popup — buildAutoConfigPanel reads from _pendingAutoConfigs
-  if (motorId) {
-    const motorObj = motorMarkers.find(m => m.id === motorId);
-    if (motorObj) {
-      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
-      motorObj.marker.openPopup();
-    }
+  // Reopen the modal with refreshed chip list
+  if (_autoModalMotorId) {
+    _refreshAutoModal();
+    document.getElementById('autoModal').classList.remove('hidden');
   }
 }
 
@@ -1152,52 +1153,50 @@ function addSensorChipToAutoConfig(motorId, deviceCode) {
   const p = _getOrInitPending(motorId);
 
   if (p.linkedSensorCodes.includes(deviceCode)) {
-    showActionMessage("Already linked — pick another or press Esc to finish.");
+    showActionMessage('Already linked — pick another or press Esc to finish.');
     return;
   }
 
   p.linkedSensorCodes.push(deviceCode);
 
-  // Mark this sensor's icon as already selected
+  // Visually mark sensor icon as already selected
   sensorMarkers.find(s => s.data.deviceCode === deviceCode)
-    ?.marker.getElement()?.classList.add("sensor-already-linked");
+    ?.marker.getElement()?.classList.add('sensor-already-linked');
 
-  const count = p.linkedSensorCodes.length;
-  _updateSelectionMessage(count);
+  _updateSelectionMessage(p.linkedSensorCodes.length);
   showActionMessage(`${deviceCode.slice(0, 9)} linked — keep picking or press Esc to finish`);
 }
 
-function removeSensorFromAuto(motorId, deviceCode) {
-  // Remove from pending state
+function removeSensorFromAuto(deviceCode) {
+  const motorId = _autoModalMotorId;
+  if (!motorId) return;
   const p = _pendingAutoConfigs[motorId];
-  if (p) p.linkedSensorCodes = p.linkedSensorCodes.filter(c => c !== deviceCode);
+  if (!p) return;
 
-  // Remove chip from DOM if popup is open
-  const chipsEl = document.getElementById(`auto-sensors-${motorId}`);
-  if (!chipsEl) return;
-  chipsEl.querySelector(`[data-code="${deviceCode}"]`)?.remove();
-  if (chipsEl.children.length === 0) {
-    chipsEl.innerHTML = '<span class="auto-no-sensors">No sensors linked yet</span>';
-  }
+  p.linkedSensorCodes = p.linkedSensorCodes.filter(c => c !== deviceCode);
+  _refreshAutoModal();
 }
 
 async function saveAutoConfig(motorId) {
-  // Snapshot current DOM values into pending state first
-  _getOrInitPending(motorId);
-  _snapshotDomToPending(motorId);
   const p = _pendingAutoConfigs[motorId];
+  if (!p) return;
+
+  // Read current modal inputs
+  p.lowerThreshold        = parseFloat(document.getElementById('autoModalLower').value) || p.lowerThreshold;
+  p.upperThreshold        = parseFloat(document.getElementById('autoModalUpper').value) || p.upperThreshold;
+  p.autoMaxRuntimeMinutes = parseInt(document.getElementById('autoModalMaxrt').value)   || p.autoMaxRuntimeMinutes;
 
   if (p.lowerThreshold >= p.upperThreshold) {
-    showErrorMessage("Lower threshold must be less than upper threshold.");
+    showErrorMessage('Lower threshold must be less than upper threshold.');
     return;
   }
 
-  const saveBtn = document.querySelector(`#auto-config-${motorId} .auto-save-btn`);
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving..."; }
+  const saveBtn = document.getElementById('autoSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
   try {
     const res = await fetch(`http://localhost:5212/api/motor/${motorId}/auto-config`, {
-      method: "PATCH",
+      method: 'PATCH',
       headers: authHeaders(),
       body: JSON.stringify({
         linkedSensorCodes: p.linkedSensorCodes,
@@ -1208,41 +1207,31 @@ async function saveAutoConfig(motorId) {
     });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`[${res.status}] ${body || "Server error"}`);
+      throw new Error(`[${res.status}] ${body || 'Server error'}`);
     }
     const updated = await res.json();
 
+    // Update in-memory motor data so popup button label refreshes
     const motorObj = motorMarkers.find(m => m.id === motorId);
     if (motorObj) {
-      motorObj.data.linkedSensorCodes = updated.linkedSensorCodes;
-      motorObj.data.lowerThreshold = updated.lowerThreshold;
-      motorObj.data.upperThreshold = updated.upperThreshold;
+      motorObj.data.linkedSensorCodes    = updated.linkedSensorCodes;
+      motorObj.data.lowerThreshold       = updated.lowerThreshold;
+      motorObj.data.upperThreshold       = updated.upperThreshold;
       motorObj.data.autoMaxRuntimeMinutes = updated.autoMaxRuntimeMinutes;
+      motorObj.data.mode                 = updated.mode ?? 'auto';
+      motorObj.marker.setPopupContent(buildMotorPopup(motorObj.data));
     }
 
-    // Clear pending state — saved to backend
     delete _pendingAutoConfigs[motorId];
-
-    const motorObj2 = motorMarkers.find(m => m.id === motorId);
-    if (motorObj2) motorObj2.marker.setPopupContent(buildMotorPopup(motorObj2.data));
+    document.getElementById('autoModal').classList.add('hidden');
+    _autoModalMotorId = null;
 
     renderMotorSidebar?.();
     renderAutoSidebar?.();
-    showActionMessage("Auto config saved!");
-
-    // Show saved state on button briefly
-    if (saveBtn) {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "✓ Saved";
-      saveBtn.style.background = "#16a34a";
-      setTimeout(() => {
-        saveBtn.textContent = "Save Auto Config";
-        saveBtn.style.background = "";
-      }, 2000);
-    }
+    showActionMessage('Auto config saved! ✅');
   } catch (err) {
-    showErrorMessage(err.message || "Failed to save auto config.");
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Save Auto Config"; }
+    showErrorMessage(err.message || 'Failed to save auto config.');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Auto Config'; }
   }
 }
 

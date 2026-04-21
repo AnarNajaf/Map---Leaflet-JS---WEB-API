@@ -286,6 +286,52 @@
         </div>
       </div>
     </div>
+
+    <!-- Auto Mode Config Modal -->
+    <div id="autoModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Auto Irrigation Config</h3>
+
+        <div style="margin-bottom:14px;">
+          <div class="auto-section-label" style="margin-bottom:8px;">Linked Sensors</div>
+          <div id="autoModalSensors" class="auto-sensor-chips">
+            <span class="auto-no-sensors">No sensors linked yet</span>
+          </div>
+          <button class="auto-pick-btn" style="margin-top:8px;" onclick="startSensorSelectionForAuto()">
+            + Pick sensors from map
+          </button>
+        </div>
+
+        <div style="border-top:1px solid #e5e7eb; padding-top:14px;">
+          <div class="auto-section-label" style="margin-bottom:10px;">Thresholds</div>
+          <div class="auto-thresholds">
+            <div class="threshold-row">
+              <span>Turn ON below</span>
+              <input type="number" id="autoModalLower" min="0" max="100" value="30" class="threshold-input" />
+              <span>%</span>
+            </div>
+            <div class="threshold-row">
+              <span>Turn OFF above</span>
+              <input type="number" id="autoModalUpper" min="0" max="100" value="60" class="threshold-input" />
+              <span>%</span>
+            </div>
+            <div class="threshold-row">
+              <span>Max runtime</span>
+              <input type="number" id="autoModalMaxrt" min="1" max="480" value="60" class="threshold-input" />
+              <span>min</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top:20px;">
+          <button id="autoCancelBtn" class="btn cancel">Cancel</button>
+          <button id="autoSaveBtn" class="btn" style="background:#216c3c; color:white;">
+            Save Auto Config
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="Data.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

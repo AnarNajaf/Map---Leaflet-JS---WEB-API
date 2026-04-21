@@ -221,10 +221,7 @@ async function pauseAutoMode(motorId) {
 }
 
 function editAutoConfig(motorId) {
-  const motorObj = motorMarkers.find((m) => m.id === motorId);
-  if (!motorObj) return;
-  map.setView([motorObj.data.lat, motorObj.data.lng], 18);
-  motorObj.marker.openPopup();
+  openAutoConfigPanel(motorId);
 }
 
 async function toggleSchedule(scheduleId, currentlyEnabled) {
