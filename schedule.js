@@ -78,6 +78,7 @@ function utcToBaku(hhmm) {
 async function loadSchedules() {
   const list = document.getElementById("scheduleList");
   list.innerHTML = "";
+  list.style.display = '';
 
   for (const motorObj of motorMarkers) {
     if (motorObj.data.mode === "auto") continue; // handled by renderAutoSidebar
@@ -197,6 +198,9 @@ function renderAutoSidebar() {
   }
 
   list.appendChild(section);
+
+  // Hide the list container itself when completely empty so no white gap shows
+  list.style.display = list.children.length === 0 ? 'none' : '';
 }
 
 async function pauseAutoMode(motorId) {
