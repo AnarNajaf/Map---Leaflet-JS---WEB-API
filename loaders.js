@@ -399,13 +399,6 @@ function addSensorMarker(sensor) {
     attachRealtimeSensorListener(sensor);
   });
 
-  marker.on("popupclose", () => {
-    if (sensorUnsubscribers[sensor.id]) {
-      sensorUnsubscribers[sensor.id]();
-      delete sensorUnsubscribers[sensor.id];
-    }
-  });
-
   const sensorObj = {
     id: sensor.id,
     marker,
@@ -622,6 +615,11 @@ async function loadSensorsFromDB() {
     console.log("Loaded sensors:", sensors);
     renderSensorSidebar?.();
     renderAlerts?.();
+
+    // Attach Firebase listeners for all sensors as soon as Firebase is ready
+    _attachWhenReady(() => {
+      sensorMarkers.forEach(s => attachRealtimeSensorListener(s.data));
+    });
   } catch (err) {
     console.error("Error loading sensors:", err);
   }
@@ -646,8 +644,22 @@ async function loadMotorsFromDB() {
     console.log("Loaded motors:", motors);
     renderMotorSidebar?.();
     renderAlerts?.();
+
+    // Attach Firebase listeners for all motors as soon as Firebase is ready
+    _attachWhenReady(() => {
+      motorMarkers.forEach(m => attachRealtimeMotorListener(m.data));
+    });
   } catch (err) {
     console.error("Error loading motors:", err);
+  }
+}
+
+// Runs callback once Firebase SDK is available, retrying every 400 ms until then
+function _attachWhenReady(callback) {
+  if (window.firebaseDb && window.firestoreDoc && window.firestoreOnSnapshot) {
+    callback();
+  } else {
+    setTimeout(() => _attachWhenReady(callback), 400);
   }
 }
 // NOTE: loadMotorsFromDB() is called in script.js after map init — not here
