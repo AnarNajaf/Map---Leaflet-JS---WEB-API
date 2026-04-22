@@ -499,7 +499,7 @@ input:checked + .slider:before {
 /* ── Alerts panel ─────────────────────────────────────────────────────────── */
 .alerts-panel {
   position: fixed;
-  bottom: 16px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   width: 300px;
@@ -782,28 +782,10 @@ input:checked + .slider:before {
   box-shadow: 0 4px 20px rgba(0,0,0,0.13);
   overflow: hidden;
   font-family: "Inter", sans-serif;
-  transition: width 0.22s ease, border-radius 0.22s ease;
-}
-
-.schedule-sidebar.collapsed {
-  width: 36px;
-  border-radius: 10px;
-  overflow: hidden;
 }
 
 .schedule-sidebar.collapsed .schedule-list {
   display: none;
-}
-
-.schedule-sidebar.collapsed .schedule-sidebar-title {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-}
-
-.schedule-sidebar.collapsed .schedule-sidebar-header {
-  padding: 8px;
-  justify-content: center;
 }
 
 .schedule-sidebar-header {
@@ -816,24 +798,21 @@ input:checked + .slider:before {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  overflow: hidden;
+  gap: 6px;
 }
 
 .schedule-sidebar-title {
-  white-space: nowrap;
-  overflow: hidden;
   flex: 1;
-  transition: opacity 0.18s, width 0.18s;
+  white-space: nowrap;
 }
 
 .schedule-sidebar-toggle {
   background: rgba(255,255,255,0.18);
   border: none;
   color: #fff;
-  font-size: 17px;
+  font-size: 15px;
   width: 22px;
-  height: 26px;
+  height: 22px;
   border-radius: 5px;
   cursor: pointer;
   display: flex;

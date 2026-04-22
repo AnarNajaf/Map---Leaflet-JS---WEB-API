@@ -659,7 +659,7 @@ function toggleScheduleSidebar() {
   if (!panel || !btn) return;
   panel.classList.toggle("collapsed");
   const isCollapsed = panel.classList.contains("collapsed");
-  btn.textContent = isCollapsed ? "‹" : "›";
+  btn.textContent = isCollapsed ? "+" : "−";
   btn.title = isCollapsed ? "Expand" : "Collapse";
 }
 
