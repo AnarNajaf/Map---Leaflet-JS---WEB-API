@@ -60,6 +60,18 @@
     <!-- System status bar (top-center) — shows active conditions like rain mode -->
     <div id="systemStatusBar" class="system-status-bar hidden"></div>
 
+    <!-- Alerts panel (bottom-center) -->
+    <div id="alertsPanel" class="alerts-panel">
+      <div class="alerts-header">
+        <span class="alerts-title">⚠ Alerts</span>
+        <span class="alerts-badge" id="alertsCount">0</span>
+        <button class="alerts-toggle" id="alertsToggle" onclick="toggleAlertsPanel()" title="Collapse">−</button>
+      </div>
+      <div id="alertsList" class="alerts-list">
+        <div class="alerts-empty">Loading…</div>
+      </div>
+    </div>
+
     <!-- Right schedule sidebar -->
     <div id="scheduleSidebar" class="schedule-sidebar">
       <div class="schedule-sidebar-header">

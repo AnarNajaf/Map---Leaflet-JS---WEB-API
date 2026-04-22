@@ -140,9 +140,12 @@ function attachRealtimeSensorListener(sensor) {
       const sensorObj = sensorMarkers.find((s) => s.id === sensor.id);
       if (sensorObj) {
         sensorObj.data.isActive = isOnline;
+        sensorObj.data.batteryLevel = live.batteryLevel ?? sensorObj.data.batteryLevel;
+        sensorObj.data.soilMoisture = live.soilMoisture ?? sensorObj.data.soilMoisture;
       }
 
       renderSensorSidebar?.();
+      renderAlerts?.();
     },
     (error) => console.error("Realtime Firestore error:", error),
   );
@@ -217,6 +220,8 @@ function attachRealtimeMotorListener(motor) {
         motorObj.data.activeTimeHours = activeTimeHours;
         motorObj.data.checking = checking;
       }
+
+      renderAlerts?.();
     },
     (error) => console.error("Realtime Motor Firestore error:", error),
   );
@@ -616,6 +621,7 @@ async function loadSensorsFromDB() {
 
     console.log("Loaded sensors:", sensors);
     renderSensorSidebar?.();
+    renderAlerts?.();
   } catch (err) {
     console.error("Error loading sensors:", err);
   }
@@ -639,6 +645,7 @@ async function loadMotorsFromDB() {
 
     console.log("Loaded motors:", motors);
     renderMotorSidebar?.();
+    renderAlerts?.();
   } catch (err) {
     console.error("Error loading motors:", err);
   }
@@ -1228,6 +1235,7 @@ async function saveAutoConfig(motorId) {
 
     renderMotorSidebar?.();
     renderAutoSidebar?.();
+    renderAlerts?.();
     showActionMessage('Auto config saved! ✅');
   } catch (err) {
     showErrorMessage(err.message || 'Failed to save auto config.');
@@ -1275,4 +1283,122 @@ async function setMotorMode(motorId, mode) {
   } catch (err) {
     showErrorMessage(err.message || "Failed to set mode.");
   }
+}
+
+// ── Alerts panel ──────────────────────────────────────────────────────────────
+
+function toggleAlertsPanel() {
+  const panel = document.getElementById('alertsPanel');
+  const btn   = document.getElementById('alertsToggle');
+  if (!panel || !btn) return;
+  panel.classList.toggle('collapsed');
+  const collapsed = panel.classList.contains('collapsed');
+  btn.textContent = collapsed ? '+' : '−';
+  btn.title       = collapsed ? 'Expand' : 'Collapse';
+}
+
+function renderAlerts() {
+  const badge = document.getElementById('alertsCount');
+  const list  = document.getElementById('alertsList');
+  const panel = document.getElementById('alertsPanel');
+  if (!badge || !list || !panel) return;
+
+  const alerts = [];
+
+  // ── Sensor checks ──────────────────────────────────────────────────────
+  sensorMarkers.forEach(s => {
+    const d = s.data;
+    const label = (d.deviceCode ?? d.id ?? '?').slice(0, 12);
+
+    // Offline
+    if (d.isActive === false) {
+      alerts.push({
+        sev: 'critical', icon: '📡',
+        title: `${label} offline`,
+        detail: 'Sensor not sending data'
+      });
+    }
+
+    // Battery
+    if (d.batteryLevel != null) {
+      if (d.batteryLevel < 15) {
+        alerts.push({
+          sev: 'critical', icon: '🔋',
+          title: `${label} battery critical`,
+          detail: `${d.batteryLevel}% — replace soon`
+        });
+      } else if (d.batteryLevel < 30) {
+        alerts.push({
+          sev: 'warning', icon: '🔋',
+          title: `${label} battery low`,
+          detail: `${d.batteryLevel}% remaining`
+        });
+      }
+    }
+
+    // Critically dry soil even though sensor is online
+    if (d.isActive !== false && d.soilMoisture != null && d.soilMoisture < 10) {
+      alerts.push({
+        sev: 'warning', icon: '🌵',
+        title: `${label} critically dry`,
+        detail: `Soil moisture at ${d.soilMoisture}%`
+      });
+    }
+  });
+
+  // ── Motor checks ───────────────────────────────────────────────────────
+  motorMarkers.forEach(m => {
+    const d = m.data;
+    const label = (d.deviceCode ?? d.id ?? '?').slice(0, 12);
+
+    // Running suspiciously long (≥ 3 h)
+    if (d.isActive && d.activeTimeHours != null && d.activeTimeHours >= 3) {
+      alerts.push({
+        sev: 'warning', icon: '⏱',
+        title: `${label} running ${d.activeTimeHours}h`,
+        detail: 'Motor active for extended period'
+      });
+    }
+
+    // Auto mode with no sensors linked
+    if (d.mode === 'auto' && (!d.linkedSensorCodes || d.linkedSensorCodes.length === 0)) {
+      alerts.push({
+        sev: 'warning', icon: '⚙️',
+        title: `${label} auto — no sensors`,
+        detail: 'Link sensors in auto config'
+      });
+    }
+  });
+
+  // ── Sort critical first ────────────────────────────────────────────────
+  const order = { critical: 0, warning: 1, info: 2 };
+  alerts.sort((a, b) => order[a.sev] - order[b.sev]);
+
+  // ── Update header colour ───────────────────────────────────────────────
+  const count = alerts.length;
+  badge.textContent = count;
+
+  const headerEl = panel.querySelector('.alerts-header');
+  if (headerEl) {
+    const hasCritical = alerts.some(a => a.sev === 'critical');
+    headerEl.style.background = count === 0
+      ? '#6b7280'                          // grey  — all clear
+      : hasCritical ? '#b91c1c'            // red   — critical
+                    : '#c2410c';           // orange — warnings only
+  }
+
+  // ── Render list ────────────────────────────────────────────────────────
+  if (count === 0) {
+    list.innerHTML = '<div class="alerts-empty">✓ All systems normal</div>';
+    return;
+  }
+
+  list.innerHTML = alerts.map(a => `
+    <div class="alert-item alert-${a.sev}">
+      <span class="alert-icon">${a.icon}</span>
+      <div class="alert-body">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-detail">${a.detail}</div>
+      </div>
+    </div>`).join('');
 }
