@@ -136,6 +136,10 @@ async function loadSchedules() {
   }
 
   renderAutoSidebar();
+
+  // Hide the list div itself when empty so no white gap appears
+  const list2 = document.getElementById("scheduleList");
+  if (list2) list2.style.display = list2.children.length === 0 ? 'none' : '';
 }
 
 function renderAutoSidebar() {
@@ -198,9 +202,6 @@ function renderAutoSidebar() {
   }
 
   list.appendChild(section);
-
-  // Hide the list container itself when completely empty so no white gap shows
-  list.style.display = list.children.length === 0 ? 'none' : '';
 }
 
 async function pauseAutoMode(motorId) {
