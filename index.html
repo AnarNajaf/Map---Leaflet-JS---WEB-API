@@ -23,7 +23,11 @@
   </head>
   <body>
     <div id="mapMessage" class="map-message hidden"></div>
-    <button class="logout-button" onclick="logout()">Logout</button>
+    <nav class="map-nav">
+      <a href="log.html" class="map-nav-btn">📋 Log</a>
+      <a href="dashboard.html" class="map-nav-btn">📊 Dashboard</a>
+      <button class="map-nav-btn map-nav-logout" onclick="logout()">Logout</button>
+    </nav>
     <div id="actionMessage" class="action-message hidden"></div>
     <div id="errorMessage" class="action-message hidden"></div>
     <div id="confirmModal" class="modal hidden">

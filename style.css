@@ -466,22 +466,41 @@ input:checked + .slider:before {
 #errorMessage {
   background-color: #e53935;
 }
-.logout-button {
-  background-color: #ffffff;
-  color: #333;
-  border: 1px solid #ccc;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
+.map-nav {
   position: fixed;
   bottom: 10px;
   left: 10px;
   z-index: 9999;
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
-.logout-button:hover {
-  background-color: #f0f0f0;
+.map-nav-btn {
+  background: #ffffff;
+  color: #333;
+  border: 1px solid #ccc;
+  padding: 8px 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: "Inter", sans-serif;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s;
+}
+.map-nav-btn:hover {
+  background: #f0f0f0;
   border-color: #aaa;
+}
+.map-nav-logout {
+  color: #c0392b;
+  border-color: #f5c6c6;
+}
+.map-nav-logout:hover {
+  background: #fff5f5;
+  border-color: #e57373;
 }
 
 /* ── Left sidebars ───────────────────────────────────────────────────────── */
