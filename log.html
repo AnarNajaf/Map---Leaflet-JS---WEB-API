@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Irrigation Log — iTarla</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green-dark: #0d3320;
+      --green-mid:  #216c3c;
+      --green-light:#4caf74;
+      --green-pale: #d1fae5;
+      --bg:         #f6f8f6;
+      --surface:    #ffffff;
+      --border:     #e2e8e2;
+      --text:       #0d1a0f;
+      --muted:      #8fa893;
+      --sub:        #4b6b52;
+      --red:        #dc2626;
+      --red-pale:   #fef2f2;
+      --amber:      #d97706;
+      --amber-pale: #fef3c7;
+      --blue:       #1d4ed8;
+      --blue-pale:  #eff6ff;
+      --mono: 'JetBrains Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    .header {
+      background: var(--green-dark);
+      padding: 0 28px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+    .logo span { color: var(--green-light); }
+    .hdiv { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+    .htitle { font-size: 13px; color: rgba(255,255,255,0.55); }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    .hbtn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 13px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .hbtn-ghost {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.8);
+    }
+    .hbtn-ghost:hover { background: rgba(255,255,255,0.14); }
+    .hbtn-green { background: var(--green-mid); border: none; color: #fff; }
+    .hbtn-green:hover { background: #1a5830; }
+    .hbtn-red { background: #7f1d1d; border: none; color: #fca5a5; }
+    .hbtn-red:hover { background: #991b1b; }
+    .hbtn-green.spinning svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Main ── */
+    .main { max-width: 1120px; margin: 0 auto; padding: 28px 22px; }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .stat-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--muted); margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 26px; font-weight: 700; line-height: 1;
+      font-family: var(--mono); color: var(--text);
+    }
+    .stat-value.green { color: var(--green-mid); }
+    .stat-value.red   { color: var(--red); }
+    .stat-value.small { font-size: 15px; padding-top: 5px; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 13px; font-weight: 500; color: var(--sub);
+      cursor: pointer; transition: all 0.15s;
+      font-family: 'Inter', sans-serif;
+    }
+    .filter-btn:hover { border-color: var(--green-mid); color: var(--green-mid); }
+    .filter-btn.active { background: var(--green-mid); color: #fff; border-color: var(--green-mid); }
+    .spacer { flex: 1; }
+    .search-input {
+      padding: 7px 12px;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; width: 190px; color: var(--text); background: var(--surface);
+    }
+    .search-input:focus { border-color: var(--green-mid); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f8faf8; border-bottom: 1px solid var(--border); }
+    th {
+      padding: 11px 14px;
+      text-align: left; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);
+    }
+    td {
+      padding: 12px 14px; font-size: 13px;
+      color: var(--text); border-bottom: 1px solid #f0f4f0;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8faf8; }
+
+    .device-code {
+      font-family: var(--mono); font-size: 12px; font-weight: 500;
+      color: var(--green-dark); background: var(--green-pale);
+      padding: 3px 8px; border-radius: 5px; display: inline-block;
+    }
+
+    /* Event badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .badge .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    .badge-started        { background: #fef9c3; color: #713f12; }
+    .badge-started .dot   { background: #ca8a04; }
+    .badge-completed      { background: var(--green-pale); color: #065f46; }
+    .badge-completed .dot { background: var(--green-light); }
+    .badge-auto_started        { background: var(--blue-pale); color: #1e3a8a; }
+    .badge-auto_started .dot   { background: var(--blue); }
+    .badge-auto_stopped        { background: #f1f5f9; color: #334155; }
+    .badge-auto_stopped .dot   { background: #64748b; }
+    .badge-auto_timeout        { background: #fff7ed; color: #7c2d12; }
+    .badge-auto_timeout .dot   { background: #ea580c; }
+    .badge-safety_timeout      { background: var(--red-pale); color: #7f1d1d; }
+    .badge-safety_timeout .dot { background: var(--red); }
+    .badge-skipped_stale_sensor      { background: #faf5ff; color: #4c1d95; }
+    .badge-skipped_stale_sensor .dot { background: #7c3aed; }
+    .badge-default      { background: #f1f5f9; color: #334155; }
+    .badge-default .dot { background: #94a3b8; }
+
+    .ok-badge   { color: var(--green-mid); font-size: 12px; font-weight: 600; }
+    .fail-badge { color: var(--red);       font-size: 12px; font-weight: 600; }
+
+    .ts { font-family: var(--mono); font-size: 12px; color: var(--sub); white-space: nowrap; }
+    .ts .date { color: var(--muted); margin-right: 5px; }
+
+    .reason-text {
+      font-size: 12px; color: var(--sub);
+      max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .reason-text.err {
+      color: var(--red); background: var(--red-pale);
+      padding: 2px 7px; border-radius: 4px;
+      font-family: var(--mono);
+    }
+
+    .del-btn {
+      background: none; border: none; cursor: pointer;
+      color: #cbd5e1; font-size: 15px; padding: 4px 6px;
+      border-radius: 5px; transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .del-btn:hover { color: var(--red); background: var(--red-pale); }
+
+    /* State rows */
+    .state-row td { text-align: center; padding: 56px 0; color: var(--muted); }
+    .state-icon  { font-size: 30px; margin-bottom: 10px; display: block; }
+    .state-msg   { font-size: 14px; font-weight: 500; }
+    .state-sub   { font-size: 13px; margin-top: 4px; }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px; border-top: 1px solid var(--border);
+      font-size: 13px; color: var(--muted);
+    }
+    .page-btns { display: flex; gap: 6px; }
+    .page-btn {
+      padding: 5px 12px; border: 1px solid var(--border);
+      border-radius: 6px; background: var(--surface);
+      font-size: 13px; cursor: pointer;
+      font-family: 'Inter', sans-serif; color: var(--sub);
+      transition: all 0.15s;
+    }
+    .page-btn:hover:not(:disabled) { border-color: var(--green-mid); color: var(--green-mid); }
+    .page-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    /* Confirm overlay */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .overlay.hidden { display: none; }
+    .confirm-box {
+      background: #fff; border-radius: 14px;
+      padding: 28px 28px 22px;
+      width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    .confirm-box h3 { font-size: 16px; margin-bottom: 8px; }
+    .confirm-box p  { font-size: 13px; color: var(--sub); margin-bottom: 22px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+    .cbtn {
+      padding: 8px 22px; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none;
+      font-family: 'Inter', sans-serif; transition: opacity 0.15s;
+    }
+    .cbtn:hover { opacity: 0.85; }
+    .cbtn-cancel { background: #f1f5f9; color: #334155; }
+    .cbtn-danger { background: var(--red); color: #fff; }
+
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+      .main { padding: 18px 14px; }
+      th:nth-child(5), td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Confirm dialog -->
+<div class="overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmMsg">This action cannot be undone.</p>
+    <div class="confirm-actions">
+      <button class="cbtn cbtn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="cbtn cbtn-danger" id="confirmOk">Yes, delete</button>
+    </div>
+  </div>
+</div>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">i<span>Tarla</span></div>
+    <div class="hdiv"></div>
+    <div class="htitle">Irrigation Log</div>
+  </div>
+  <div class="header-right">
+    <button class="hbtn hbtn-red" onclick="confirmClearAll()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      Clear All
+    </button>
+    <button class="hbtn hbtn-green" onclick="loadLogs()" id="refreshBtn">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Refresh
+    </button>
+    <a href="index.html" class="hbtn hbtn-ghost">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Map
+    </a>
+  </div>
+</header>
+
+<main class="main">
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Events</div>
+      <div class="stat-value" id="statTotal">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Completed</div>
+      <div class="stat-value green" id="statCompleted">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Failed / Skipped</div>
+      <div class="stat-value red" id="statFailed">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last Event</div>
+      <div class="stat-value small" id="statLast">—</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('started',this)">Started</button>
+    <button class="filter-btn" onclick="setFilter('completed',this)">Completed</button>
+    <button class="filter-btn" onclick="setFilter('auto_started',this)">Auto</button>
+    <button class="filter-btn" onclick="setFilter('safety_timeout',this)">Safety</button>
+    <button class="filter-btn" onclick="setFilter('failed',this)">Failed</button>
+    <div class="spacer"></div>
+    <input class="search-input" type="text" placeholder="Search device…" id="searchInput" oninput="applyFilter()" />
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th>Event</th>
+          <th>Status</th>
+          <th>Time (Baku)</th>
+          <th>Reason / Error</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="logBody">
+        <tr class="state-row">
+          <td colspan="6">
+            <span class="state-icon">⏳</span>
+            <div class="state-msg">Loading logs…</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="pagination">
+      <span id="pageInfo">—</span>
+      <div class="page-btns">
+        <button class="page-btn" id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
+        <button class="page-btn" id="nextBtn" onclick="changePage(1)" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = 'http://localhost:5212';
+  const PAGE = 50;
+
+  let allLogs      = [];
+  let filtered     = [];
+  let currentFilter = 'all';
+  let currentPage   = 0;
+  let totalOnServer = 0;
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  if (!localStorage.getItem('token')) location.href = 'login.html';
+
+  function headers() {
+    return {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    };
+  }
+
+  // ── Load ──────────────────────────────────────────────────────────────────
+  async function loadLogs() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+
+    try {
+      const res = await fetch(`${API}/api/log?skip=0&limit=500`, { headers: headers() });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      allLogs      = data.logs ?? data;   // backwards compat
+      totalOnServer = data.total ?? allLogs.length;
+      updateStats();
+      applyFilter();
+    } catch (err) {
+      document.getElementById('logBody').innerHTML = `
+        <tr class="state-row"><td colspan="6">
+          <span class="state-icon">❌</span>
+          <div class="state-msg">Failed to load</div>
+          <div class="state-sub">${err.message}</div>
+        </td></tr>`;
+    } finally {
+      btn.classList.remove('spinning');
+    }
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('statTotal').textContent     = totalOnServer;
+    document.getElementById('statCompleted').textContent = allLogs.filter(l => l.event === 'completed' && l.success).length;
+    document.getElementById('statFailed').textContent    = allLogs.filter(l => !l.success || l.event === 'skipped_stale_sensor').length;
+    document.getElementById('statLast').textContent      = allLogs.length ? timeAgo(new Date(allLogs[0].timestamp)) : '—';
+  }
+
+  // ── Filter ────────────────────────────────────────────────────────────────
+  function setFilter(f, btn) {
+    currentFilter = f;
+    currentPage   = 0;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilter();
+  }
+
+  function applyFilter() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    filtered = allLogs.filter(log => {
+      const matchF =
+        currentFilter === 'all'    ? true :
+        currentFilter === 'failed' ? (!log.success) :
+        log.event === currentFilter;
+      const matchQ = !q || (log.deviceCode ?? '').toLowerCase().includes(q);
+      return matchF && matchQ;
+    });
+    currentPage = 0;
+    renderTable();
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function renderTable() {
+    const start = currentPage * PAGE;
+    const page  = filtered.slice(start, start + PAGE);
+    const total = filtered.length;
+    const pages = Math.ceil(total / PAGE);
+
+    document.getElementById('pageInfo').textContent =
+      total === 0 ? 'No results' : `${start + 1}–${Math.min(start + PAGE, total)} of ${total}`;
+    document.getElementById('prevBtn').disabled = currentPage === 0;
+    document.getElementById('nextBtn').disabled = currentPage >= pages - 1;
+
+    if (page.length === 0) {
+      document.getElementById('logBody').innerHTML = `
+        <tr class="state-row"><td colspan="6">
+          <span class="state-icon">🌿</span>
+          <div class="state-msg">No logs found</div>
+          <div class="state-sub">Try a different filter or search</div>
+        </td></tr>`;
+      return;
+    }
+
+    document.getElementById('logBody').innerHTML = page.map(log => {
+      const baku = toBaku(log.timestamp);
+      const badgeClass = badgeFor(log.event);
+      const label      = labelFor(log.event);
+      const reason     = log.errorMessage
+        ? `<span class="reason-text err">${esc(log.errorMessage)}</span>`
+        : `<span class="reason-text" style="color:var(--muted)">—</span>`;
+
+      return `<tr>
+        <td><span class="device-code">${esc(log.deviceCode ?? '—')}</span></td>
+        <td><span class="badge ${badgeClass}"><span class="dot"></span>${label}</span></td>
+        <td>${log.success
+          ? `<span class="ok-badge">✓ OK</span>`
+          : `<span class="fail-badge">✗ Failed</span>`}</td>
+        <td><span class="ts"><span class="date">${baku.date}</span>${baku.time}</span></td>
+        <td>${reason}</td>
+        <td><button class="del-btn" onclick="confirmDelete('${log.id}')" title="Delete this entry">✕</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function changePage(dir) {
+    currentPage += dir;
+    renderTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Delete single ─────────────────────────────────────────────────────────
+  function confirmDelete(id) {
+    openConfirm(
+      'Delete this log entry?',
+      'This record will be permanently removed.',
+      async () => {
+        const r = await fetch(`${API}/api/log/${id}`, { method: 'DELETE', headers: headers() });
+        if (!r.ok) { alert(`Delete failed: ${r.status}`); return; }
+        allLogs = allLogs.filter(l => l.id !== id);
+        totalOnServer = Math.max(0, totalOnServer - 1);
+        updateStats();
+        applyFilter();
+      }
+    );
+  }
+
+  // ── Clear all ─────────────────────────────────────────────────────────────
+  function confirmClearAll() {
+    openConfirm(
+      'Clear ALL logs?',
+      'Every log entry will be permanently deleted. This cannot be undone.',
+      async () => {
+        const r = await fetch(`${API}/api/log`, { method: 'DELETE', headers: headers() });
+        if (!r.ok) { alert(`Clear failed: ${r.status}`); return; }
+        allLogs = [];
+        totalOnServer = 0;
+        updateStats();
+        applyFilter();
+      }
+    );
+  }
+
+  // ── Confirm dialog ────────────────────────────────────────────────────────
+  let _confirmCb = null;
+  function openConfirm(title, msg, cb) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent   = msg;
+    _confirmCb = cb;
+    document.getElementById('confirmOverlay').classList.remove('hidden');
+  }
+  function closeConfirm() {
+    document.getElementById('confirmOverlay').classList.add('hidden');
+    _confirmCb = null;
+  }
+  document.getElementById('confirmOk').onclick = async () => {
+    const cb = _confirmCb;
+    closeConfirm();
+    if (cb) await cb();
+  };
+  document.getElementById('confirmOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('confirmOverlay')) closeConfirm();
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function toBaku(ts) {
+    const d = new Date(new Date(ts).getTime() + 4 * 60 * 60 * 1000);
+    return {
+      date: d.toISOString().slice(0, 10),
+      time: d.toISOString().slice(11, 19),
+    };
+  }
+
+  function timeAgo(date) {
+    const s = Math.floor((Date.now() - date) / 1000);
+    if (s < 60)    return `${s}s ago`;
+    if (s < 3600)  return `${Math.floor(s/60)}m ago`;
+    if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+    return `${Math.floor(s/86400)}d ago`;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function badgeFor(event) {
+    const map = {
+      started:              'badge-started',
+      completed:            'badge-completed',
+      auto_started:         'badge-auto_started',
+      auto_stopped:         'badge-auto_stopped',
+      auto_timeout:         'badge-auto_timeout',
+      safety_timeout:       'badge-safety_timeout',
+      skipped_stale_sensor: 'badge-skipped_stale_sensor',
+    };
+    return map[event] ?? 'badge-default';
+  }
+
+  function labelFor(event) {
+    const map = {
+      started:              'Started',
+      completed:            'Completed',
+      auto_started:         'Auto ON',
+      auto_stopped:         'Auto OFF',
+      auto_timeout:         'Auto Timeout',
+      safety_timeout:       'Safety Stop',
+      skipped_stale_sensor: 'Skipped (stale)',
+    };
+    return map[event] ?? event;
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  loadLogs();
+  setInterval(loadLogs, 60_000); // auto-refresh every 60 s
+</script>
+</body>
+</html>

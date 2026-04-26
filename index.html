@@ -43,7 +43,14 @@
         <div class="sidebar-header">
           <span class="sidebar-title">Sensors</span>
           <span class="sidebar-badge" id="sensorCount">0</span>
-          <button class="sidebar-toggle" id="sensorToggle" onclick="toggleSensorPanel()" title="Collapse">−</button>
+          <button
+            class="sidebar-toggle"
+            id="sensorToggle"
+            onclick="toggleSensorPanel()"
+            title="Collapse"
+          >
+            −
+          </button>
         </div>
         <div id="sensorList" class="sidebar-list"></div>
       </div>
@@ -51,7 +58,14 @@
         <div class="sidebar-header">
           <span class="sidebar-title">Motors</span>
           <span class="sidebar-badge" id="motorCount">0</span>
-          <button class="sidebar-toggle" id="motorToggle" onclick="toggleMotorPanel()" title="Collapse">−</button>
+          <button
+            class="sidebar-toggle"
+            id="motorToggle"
+            onclick="toggleMotorPanel()"
+            title="Collapse"
+          >
+            −
+          </button>
         </div>
         <div id="motorList" class="sidebar-list"></div>
       </div>
@@ -63,9 +77,16 @@
     <!-- Alerts panel (bottom-center) -->
     <div id="alertsPanel" class="alerts-panel">
       <div class="alerts-header">
-        <span class="alerts-title">⚠ Alerts</span>
+        <span class="alerts-title">Alerts</span>
         <span class="alerts-badge" id="alertsCount">0</span>
-        <button class="alerts-toggle" id="alertsToggle" onclick="toggleAlertsPanel()" title="Collapse">−</button>
+        <button
+          class="alerts-toggle"
+          id="alertsToggle"
+          onclick="toggleAlertsPanel()"
+          title="Collapse"
+        >
+          −
+        </button>
       </div>
       <div id="alertsList" class="alerts-list">
         <div class="alerts-empty">Loading…</div>
@@ -76,8 +97,14 @@
     <div id="scheduleSidebar" class="schedule-sidebar">
       <div class="schedule-sidebar-header">
         <span class="schedule-sidebar-title">Schedules</span>
-        <button class="schedule-sidebar-toggle" id="scheduleSidebarToggle"
-          onclick="toggleScheduleSidebar()" title="Collapse">−</button>
+        <button
+          class="schedule-sidebar-toggle"
+          id="scheduleSidebarToggle"
+          onclick="toggleScheduleSidebar()"
+          title="Collapse"
+        >
+          −
+        </button>
       </div>
       <div id="scheduleList" class="schedule-list"></div>
     </div>
@@ -129,12 +156,14 @@
       <label for="motorId">Motor ID:</label>
       <input type="text" id="motorId" name="motorId" required />
 
-      <label for="motorType">Sensor Type:</label>
+      <label for="motorType">Motor Type:</label>
       <select id="motorType" name="motorType">
-        <option value="" disabled selected>Select Sensor Type</option>
-        <option value="7in1">7 in 1</option>
-        <option value="5in1">5 in 1</option>
-        <option value="3in1">3 in 1</option>
+        <option value="" disabled selected>Select Motor Type</option>
+        <option value="submersible">Submersible</option>
+        <option value="surface">Surface</option>
+        <option value="centrifugal">Centrifugal</option>
+        <option value="drip">Drip</option>
+        <option value="sprinkler">Sprinkler</option>
       </select>
       <label for="motorLat">Latitude:</label>
       <input type="text" id="motorLat" name="motorLat" readonly />
@@ -161,17 +190,37 @@
         <h3>Irrigation Schedule</h3>
 
         <!-- Type tabs -->
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-          <button id="scheduleTabInterval"
+        <div style="display: flex; gap: 8px; margin-bottom: 16px">
+          <button
+            id="scheduleTabInterval"
             onclick="switchScheduleTab('interval')"
-            style="flex:1; padding: 7px; border-radius: 8px; border: 1px solid #216c3c;
-                   background: #216c3c; color: white; font-size: 13px; cursor: pointer;">
+            style="
+              flex: 1;
+              padding: 7px;
+              border-radius: 8px;
+              border: 1px solid #216c3c;
+              background: #216c3c;
+              color: white;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             Interval
           </button>
-          <button id="scheduleTabTime"
+          <button
+            id="scheduleTabTime"
             onclick="switchScheduleTab('time')"
-            style="flex:1; padding: 7px; border-radius: 8px; border: 1px solid #d1d5db;
-                   background: white; color: #374151; font-size: 13px; cursor: pointer;">
+            style="
+              flex: 1;
+              padding: 7px;
+              border-radius: 8px;
+              border: 1px solid #d1d5db;
+              background: white;
+              color: #374151;
+              font-size: 13px;
+              cursor: pointer;
+            "
+          >
             Specific Times
           </button>
         </div>
@@ -179,12 +228,28 @@
         <!-- Interval section -->
         <div id="scheduleIntervalSection">
           <div class="input-group" style="margin-bottom: 14px">
-            <label style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; display: block;">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                color: #6b7280;
+                margin-bottom: 6px;
+                display: block;
+              "
+            >
               Every how many hours?
             </label>
-            <select id="scheduleInterval"
-              style="width: 100%; padding: 8px 10px; border: 1px solid #d1d5db;
-                     border-radius: 8px; font-size: 14px; outline: none;">
+            <select
+              id="scheduleInterval"
+              style="
+                width: 100%;
+                padding: 8px 10px;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 14px;
+                outline: none;
+              "
+            >
               <option value="1">Every 1 hour</option>
               <option value="2">Every 2 hours</option>
               <option value="3" selected>Every 3 hours</option>
@@ -196,103 +261,334 @@
             </select>
           </div>
           <div class="input-group" style="margin-bottom: 20px">
-            <label style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; display: block;">
+            <label
+              style="
+                font-size: 12px;
+                font-weight: 600;
+                color: #6b7280;
+                margin-bottom: 6px;
+                display: block;
+              "
+            >
               Duration (minutes)
             </label>
-            <input type="number" id="scheduleDuration" min="1" max="120" placeholder="e.g. 15"
-              style="width: 100%; padding: 8px 10px; border: 1px solid #d1d5db;
-                     border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;" />
+            <input
+              type="number"
+              id="scheduleDuration"
+              min="1"
+              max="120"
+              placeholder="e.g. 15"
+              style="
+                width: 100%;
+                padding: 8px 10px;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 14px;
+                outline: none;
+                box-sizing: border-box;
+              "
+            />
           </div>
         </div>
 
         <!-- Specific times section -->
-        <div id="scheduleTimeSection" style="display: none;">
-          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">
+        <div id="scheduleTimeSection" style="display: none">
+          <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px">
             Add the times (Baku time) when the motor should irrigate each day.
           </p>
-          <div id="scheduleWindowList"
-            style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 200px; overflow-y: auto;">
-          </div>
-          <button onclick="addTimeWindow()"
-            style="width: 100%; padding: 7px; font-size: 13px; color: #216c3c;
-                   background: none; border: 1px dashed #216c3c; border-radius: 8px; cursor: pointer;">
+          <div
+            id="scheduleWindowList"
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+              margin-bottom: 12px;
+              max-height: 200px;
+              overflow-y: auto;
+            "
+          ></div>
+          <button
+            onclick="addTimeWindow()"
+            style="
+              width: 100%;
+              padding: 7px;
+              font-size: 13px;
+              color: #216c3c;
+              background: none;
+              border: 1px dashed #216c3c;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
             + Add Time
           </button>
         </div>
 
         <!-- Active days selector -->
-        <div style="margin-top:16px; border-top:1px solid #e5e7eb; padding-top:14px;">
-          <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+        <div
+          style="
+            margin-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 14px;
+          "
+        >
+          <label
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              color: #6b7280;
+              display: block;
+              margin-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            "
+          >
             Active Days
           </label>
-          <div style="display:flex; gap:4px; flex-wrap:wrap;">
-            <button type="button" class="day-btn all-days active" onclick="toggleAllDays(this)">All</button>
-            <button type="button" class="day-btn" data-day="1" onclick="toggleDayBtn(this)">Mon</button>
-            <button type="button" class="day-btn" data-day="2" onclick="toggleDayBtn(this)">Tue</button>
-            <button type="button" class="day-btn" data-day="3" onclick="toggleDayBtn(this)">Wed</button>
-            <button type="button" class="day-btn" data-day="4" onclick="toggleDayBtn(this)">Thu</button>
-            <button type="button" class="day-btn" data-day="5" onclick="toggleDayBtn(this)">Fri</button>
-            <button type="button" class="day-btn" data-day="6" onclick="toggleDayBtn(this)">Sat</button>
-            <button type="button" class="day-btn" data-day="0" onclick="toggleDayBtn(this)">Sun</button>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap">
+            <button
+              type="button"
+              class="day-btn all-days active"
+              onclick="toggleAllDays(this)"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="1"
+              onclick="toggleDayBtn(this)"
+            >
+              Mon
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="2"
+              onclick="toggleDayBtn(this)"
+            >
+              Tue
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="3"
+              onclick="toggleDayBtn(this)"
+            >
+              Wed
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="4"
+              onclick="toggleDayBtn(this)"
+            >
+              Thu
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="5"
+              onclick="toggleDayBtn(this)"
+            >
+              Fri
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="6"
+              onclick="toggleDayBtn(this)"
+            >
+              Sat
+            </button>
+            <button
+              type="button"
+              class="day-btn"
+              data-day="0"
+              onclick="toggleDayBtn(this)"
+            >
+              Sun
+            </button>
           </div>
         </div>
 
         <!-- Safety rules (collapsible) -->
-        <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 14px;">
-          <button type="button" onclick="toggleSafetyPanel()"
-            style="width:100%; background:none; border:none; text-align:left; cursor:pointer;
-                   font-size:12px; font-weight:600; color:#6b7280; padding:0; display:flex;
-                   align-items:center; justify-content:space-between;">
+        <div
+          style="
+            margin-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 14px;
+          "
+        >
+          <button
+            type="button"
+            onclick="toggleSafetyPanel()"
+            style="
+              width: 100%;
+              background: none;
+              border: none;
+              text-align: left;
+              cursor: pointer;
+              font-size: 12px;
+              font-weight: 600;
+              color: #6b7280;
+              padding: 0;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            "
+          >
             <span>SAFETY RULES</span>
-            <span id="safetyChevron" style="font-size:14px;">+</span>
+            <span id="safetyChevron" style="font-size: 14px">+</span>
           </button>
-          <div id="safetyPanel" style="display:none; margin-top:12px; flex-direction:column; gap:12px;">
-
+          <div
+            id="safetyPanel"
+            style="
+              display: none;
+              margin-top: 12px;
+              flex-direction: column;
+              gap: 12px;
+            "
+          >
             <div>
-              <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:5px;">
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 600;
+                  color: #6b7280;
+                  display: block;
+                  margin-bottom: 5px;
+                "
+              >
                 Max runtime (minutes, 0 = no limit)
               </label>
-              <input type="number" id="safetyMaxRuntime" min="0" max="480" value="0" placeholder="e.g. 60"
-                style="width:100%; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px;
-                       font-size:14px; outline:none; box-sizing:border-box;" />
+              <input
+                type="number"
+                id="safetyMaxRuntime"
+                min="0"
+                max="480"
+                value="0"
+                placeholder="e.g. 60"
+                style="
+                  width: 100%;
+                  padding: 7px 10px;
+                  border: 1px solid #d1d5db;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  outline: none;
+                  box-sizing: border-box;
+                "
+              />
             </div>
 
             <div>
-              <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:5px;">
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 600;
+                  color: #6b7280;
+                  display: block;
+                  margin-bottom: 5px;
+                "
+              >
                 Forbidden hours (Baku time) — do not start between:
               </label>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <input type="time" id="safetyForbidFrom"
-                  style="flex:1; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; outline:none;" />
-                <span style="color:#6b7280; font-size:13px;">to</span>
-                <input type="time" id="safetyForbidTo"
-                  style="flex:1; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; outline:none;" />
+              <div style="display: flex; gap: 8px; align-items: center">
+                <input
+                  type="time"
+                  id="safetyForbidFrom"
+                  style="
+                    flex: 1;
+                    padding: 7px 10px;
+                    border: 1px solid #d1d5db;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    outline: none;
+                  "
+                />
+                <span style="color: #6b7280; font-size: 13px">to</span>
+                <input
+                  type="time"
+                  id="safetyForbidTo"
+                  style="
+                    flex: 1;
+                    padding: 7px 10px;
+                    border: 1px solid #d1d5db;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    outline: none;
+                  "
+                />
               </div>
             </div>
 
             <div>
-              <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:5px;">
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 600;
+                  color: #6b7280;
+                  display: block;
+                  margin-bottom: 5px;
+                "
+              >
                 Linked sensor code (for data freshness check)
               </label>
-              <input type="text" id="safetySensorCode" placeholder="e.g. ESP-001"
-                style="width:100%; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px;
-                       font-size:14px; outline:none; box-sizing:border-box;" />
+              <input
+                type="text"
+                id="safetySensorCode"
+                placeholder="e.g. ESP-001"
+                style="
+                  width: 100%;
+                  padding: 7px 10px;
+                  border: 1px solid #d1d5db;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  outline: none;
+                  box-sizing: border-box;
+                "
+              />
             </div>
 
             <div>
-              <label style="font-size:12px; font-weight:600; color:#6b7280; display:block; margin-bottom:5px;">
+              <label
+                style="
+                  font-size: 12px;
+                  font-weight: 600;
+                  color: #6b7280;
+                  display: block;
+                  margin-bottom: 5px;
+                "
+              >
                 Skip if sensor data older than (minutes, 0 = no check)
               </label>
-              <input type="number" id="safetyFreshnessMinutes" min="0" value="0" placeholder="e.g. 20"
-                style="width:100%; padding:7px 10px; border:1px solid #d1d5db; border-radius:8px;
-                       font-size:14px; outline:none; box-sizing:border-box;" />
+              <input
+                type="number"
+                id="safetyFreshnessMinutes"
+                min="0"
+                value="0"
+                placeholder="e.g. 20"
+                style="
+                  width: 100%;
+                  padding: 7px 10px;
+                  border: 1px solid #d1d5db;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  outline: none;
+                  box-sizing: border-box;
+                "
+              />
             </div>
           </div>
         </div>
 
-        <div class="modal-actions" style="margin-top: 20px;">
+        <div class="modal-actions" style="margin-top: 20px">
           <button id="scheduleCancelBtn" class="btn cancel">Cancel</button>
-          <button id="scheduleConfirmBtn" class="btn" style="background: #216c3c; color: white;">
+          <button
+            id="scheduleConfirmBtn"
+            class="btn"
+            style="background: #216c3c; color: white"
+          >
             Save Schedule
           </button>
         </div>
@@ -304,40 +600,73 @@
       <div class="modal-content">
         <h3>Auto Irrigation Config</h3>
 
-        <div style="margin-bottom:14px;">
-          <div class="auto-section-label" style="margin-bottom:8px;">Linked Sensors</div>
+        <div style="margin-bottom: 14px">
+          <div class="auto-section-label" style="margin-bottom: 8px">
+            Linked Sensors
+          </div>
           <div id="autoModalSensors" class="auto-sensor-chips">
             <span class="auto-no-sensors">No sensors linked yet</span>
           </div>
-          <button class="auto-pick-btn" style="margin-top:8px;" onclick="startSensorSelectionForAuto()">
+          <button
+            class="auto-pick-btn"
+            style="margin-top: 8px"
+            onclick="startSensorSelectionForAuto()"
+          >
             + Pick sensors from map
           </button>
         </div>
 
-        <div style="border-top:1px solid #e5e7eb; padding-top:14px;">
-          <div class="auto-section-label" style="margin-bottom:10px;">Thresholds</div>
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 14px">
+          <div class="auto-section-label" style="margin-bottom: 10px">
+            Thresholds
+          </div>
           <div class="auto-thresholds">
             <div class="threshold-row">
               <span>Turn ON below</span>
-              <input type="number" id="autoModalLower" min="0" max="100" value="30" class="threshold-input" />
+              <input
+                type="number"
+                id="autoModalLower"
+                min="0"
+                max="100"
+                value="30"
+                class="threshold-input"
+              />
               <span>%</span>
             </div>
             <div class="threshold-row">
               <span>Turn OFF above</span>
-              <input type="number" id="autoModalUpper" min="0" max="100" value="60" class="threshold-input" />
+              <input
+                type="number"
+                id="autoModalUpper"
+                min="0"
+                max="100"
+                value="60"
+                class="threshold-input"
+              />
               <span>%</span>
             </div>
             <div class="threshold-row">
               <span>Max runtime</span>
-              <input type="number" id="autoModalMaxrt" min="1" max="480" value="60" class="threshold-input" />
+              <input
+                type="number"
+                id="autoModalMaxrt"
+                min="1"
+                max="480"
+                value="60"
+                class="threshold-input"
+              />
               <span>min</span>
             </div>
           </div>
         </div>
 
-        <div class="modal-actions" style="margin-top:20px;">
+        <div class="modal-actions" style="margin-top: 20px">
           <button id="autoCancelBtn" class="btn cancel">Cancel</button>
-          <button id="autoSaveBtn" class="btn" style="background:#216c3c; color:white;">
+          <button
+            id="autoSaveBtn"
+            class="btn"
+            style="background: #216c3c; color: white"
+          >
             Save Auto Config
           </button>
         </div>

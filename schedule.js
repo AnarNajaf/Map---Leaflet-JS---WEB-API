@@ -111,7 +111,7 @@ async function loadSchedules() {
         : `Every ${schedule.intervalHours}h · ${schedule.durationMinutes} min`;
 
     const lastRanText = schedule.lastRanAt
-      ? "Last: " + new Date(schedule.lastRanAt).toLocaleTimeString()
+      ? "Last: " + new Date(schedule.lastRanAt).toLocaleTimeString("az-AZ", { timeZone: "Asia/Baku", hour: "2-digit", minute: "2-digit" })
       : "Not run yet";
 
     const item = document.createElement("div");

@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — iTarla</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --green:      #216c3c;
+      --green-dark: #0d3320;
+      --green-lt:   #4caf74;
+      --green-pale: #d1fae5;
+      --bg:         #f4f6f5;
+      --surface:    #ffffff;
+      --border:     #e2e8e2;
+      --text:       #0d1a0f;
+      --sub:        #4b6b52;
+      --muted:      #8fa893;
+      --red:        #dc2626;
+      --red-pale:   #fef2f2;
+      --amber:      #d97706;
+      --amber-pale: #fef3c7;
+      --blue:       #1d4ed8;
+      --blue-pale:  #eff6ff;
+      --mono: 'JetBrains Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: var(--green-dark); height: 58px;
+      padding: 0 28px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo { font-size: 17px; font-weight: 700; color: #fff; }
+    .logo span { color: var(--green-lt); }
+    .hdiv { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+    .htitle { font-size: 13px; color: rgba(255,255,255,0.55); }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .hbtn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 13px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: 'Inter', sans-serif; text-decoration: none; transition: opacity 0.15s;
+    }
+    .hbtn-ghost { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
+    .hbtn-ghost:hover { background: rgba(255,255,255,0.14); }
+    .hbtn-green { background: var(--green); border: none; color: #fff; }
+    .hbtn-green:hover { opacity: .85; }
+    .hbtn-green.spinning svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Layout */
+    .main { max-width: 1200px; margin: 0 auto; padding: 28px 22px; }
+
+    /* Last updated */
+    .last-updated { font-size: 12px; color: var(--muted); margin-bottom: 20px; text-align: right; }
+
+    /* Stat cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px; margin-bottom: 22px;
+    }
+    .stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 16px 14px;
+      border-top: 3px solid transparent;
+    }
+    .stat.green  { border-top-color: var(--green); }
+    .stat.amber  { border-top-color: var(--amber); }
+    .stat.red    { border-top-color: var(--red); }
+    .stat.blue   { border-top-color: var(--blue); }
+    .stat.teal   { border-top-color: #0d9488; }
+    .stat.purple { border-top-color: #7c3aed; }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 8px; }
+    .stat-value { font-size: 26px; font-weight: 700; line-height: 1; font-family: var(--mono); }
+    .stat-sub   { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    /* Grid rows */
+    .row { display: grid; gap: 16px; margin-bottom: 16px; }
+    .row-2-1 { grid-template-columns: 2fr 1fr; }
+    .row-3   { grid-template-columns: repeat(3, 1fr); }
+    .row-2   { grid-template-columns: 1fr 1fr; }
+
+    /* Cards */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--text); }
+    .card-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .card-body  { padding: 16px 18px 18px; }
+    .chart-wrap { position: relative; padding: 0 18px 18px; }
+
+    /* Motor table */
+    .mtable { width: 100%; border-collapse: collapse; }
+    .mtable th {
+      text-align: left; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+      padding: 8px 12px; border-bottom: 1px solid var(--border); background: #f8faf8;
+    }
+    .mtable td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f0f4f0; }
+    .mtable tr:last-child td { border-bottom: none; }
+    .mtable tr:hover td { background: #f8faf8; }
+
+    .code { font-family: var(--mono); font-size: 12px; background: var(--green-pale); color: var(--green-dark); padding: 2px 7px; border-radius: 5px; }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+    }
+    .pill-green  { background: var(--green-pale); color: #065f46; }
+    .pill-grey   { background: #f1f5f9; color: #475569; }
+    .pill-amber  { background: var(--amber-pale); color: #78350f; }
+    .pill-blue   { background: var(--blue-pale); color: #1e3a8a; }
+    .pill-red    { background: var(--red-pale); color: #7f1d1d; }
+
+    /* Mini bar */
+    .bar-wrap { background: #f1f5f9; border-radius: 4px; height: 6px; min-width: 60px; }
+    .bar-fill  { height: 6px; border-radius: 4px; background: var(--green); transition: width .3s; }
+
+    /* Sensor grid */
+    .sensor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
+    .sensor-tile {
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; text-align: center;
+    }
+    .sensor-tile.offline { border-color: #fca5a5; background: var(--red-pale); }
+    .sensor-name  { font-size: 11px; font-family: var(--mono); color: var(--sub); margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sensor-moisture { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+    .sensor-moisture.dry  { color: var(--red); }
+    .sensor-moisture.ok   { color: var(--green); }
+    .sensor-moisture.wet  { color: var(--blue); }
+    .sensor-status { font-size: 10px; margin-top: 4px; font-weight: 600; }
+    .sensor-status.online  { color: var(--green); }
+    .sensor-status.offline { color: var(--red); }
+    .sensor-extras { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* Empty */
+    .empty { text-align: center; padding: 32px; color: var(--muted); font-size: 13px; }
+
+    /* Skeleton */
+    .skel { background: linear-gradient(90deg,#f0f4f0 25%,#e4ebe4 50%,#f0f4f0 75%); background-size:200% 100%; animation: sh 1.2s infinite; border-radius:4px; display:inline-block; }
+    @keyframes sh { to { background-position:-200% 0; } }
+
+    @media(max-width:900px) {
+      .stats-grid { grid-template-columns: repeat(3,1fr); }
+      .row-2-1,.row-3,.row-2 { grid-template-columns: 1fr; }
+    }
+    @media(max-width:540px) {
+      .stats-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">i<span>Tarla</span></div>
+    <div class="hdiv"></div>
+    <div class="htitle">Dashboard</div>
+  </div>
+  <div class="header-right">
+    <button class="hbtn hbtn-green" onclick="loadAll()" id="refreshBtn">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      Refresh
+    </button>
+    <a href="log.html" class="hbtn hbtn-ghost">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+      Full Log
+    </a>
+    <a href="index.html" class="hbtn hbtn-ghost">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Map
+    </a>
+  </div>
+</header>
+
+<main class="main">
+  <div class="last-updated" id="lastUpdated">Loading…</div>
+
+  <!-- Stat cards -->
+  <div class="stats-grid">
+    <div class="stat green">
+      <div class="stat-label">Irrigations (7d)</div>
+      <div class="stat-value" id="s-starts">—</div>
+      <div class="stat-sub" id="s-starts-sub">scheduled + auto</div>
+    </div>
+    <div class="stat amber">
+      <div class="stat-label">Success Rate</div>
+      <div class="stat-value" id="s-rate">—</div>
+      <div class="stat-sub">of all events</div>
+    </div>
+    <div class="stat blue">
+      <div class="stat-label">Motors Active</div>
+      <div class="stat-value" id="s-active">—</div>
+      <div class="stat-sub" id="s-active-sub">right now</div>
+    </div>
+    <div class="stat teal">
+      <div class="stat-label">Sensors Online</div>
+      <div class="stat-value" id="s-online">—</div>
+      <div class="stat-sub" id="s-online-sub"></div>
+    </div>
+    <div class="stat red">
+      <div class="stat-label">Safety Stops (7d)</div>
+      <div class="stat-value" id="s-safety">—</div>
+      <div class="stat-sub">watchdog triggers</div>
+    </div>
+    <div class="stat purple">
+      <div class="stat-label">Total Log Events</div>
+      <div class="stat-value" id="s-total">—</div>
+      <div class="stat-sub">all time</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Activity chart + Doughnut -->
+  <div class="row row-2-1">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Irrigation Activity — Last 7 Days</div>
+          <div class="card-sub">starts + completions per day (Baku time)</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px;">
+        <canvas id="chartActivity"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Event Breakdown</div>
+          <div class="card-sub">all time</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:220px;">
+        <canvas id="chartTypes"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Motor table + Soil moisture -->
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-header" style="padding-bottom:0;">
+        <div>
+          <div class="card-title">Motor Overview</div>
+          <div class="card-sub">activity from logs (7d)</div>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="mtable" id="motorTable">
+          <thead>
+            <tr>
+              <th>Device</th>
+              <th>Mode</th>
+              <th>Status</th>
+              <th>Starts (7d)</th>
+              <th>Fails (7d)</th>
+              <th>Runtime</th>
+            </tr>
+          </thead>
+          <tbody id="motorTableBody">
+            <tr><td colspan="6" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Sensor Moisture</div>
+          <div class="card-sub">current readings</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="sensor-grid" id="sensorGrid">
+          <div class="empty">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Starts per motor chart + Success rate per motor -->
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Starts per Motor (7d)</div>
+          <div class="card-sub">manual + scheduled + auto</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="chartMotorStarts"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Hourly Activity Pattern (7d)</div>
+          <div class="card-sub">which hours irrigations start (Baku time)</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="chartHours"></canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = 'http://localhost:5212';
+  if (!localStorage.getItem('token')) location.href = 'login.html';
+  function hdrs() {
+    return { 'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('token')}` };
+  }
+
+  let charts = {};
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  async function loadAll() {
+    document.getElementById('refreshBtn').classList.add('spinning');
+    try {
+      const [logRes, sensorRes, motorRes] = await Promise.all([
+        fetch(`${API}/api/log?skip=0&limit=1000`, { headers: hdrs() }),
+        fetch(`${API}/api/sensor`,                { headers: hdrs() }),
+        fetch(`${API}/api/motor`,                 { headers: hdrs() }),
+      ]);
+      const logData  = logRes.ok   ? await logRes.json()    : { logs:[], total:0 };
+      const sensors  = sensorRes.ok ? await sensorRes.json() : [];
+      const motors   = motorRes.ok  ? await motorRes.json()  : [];
+
+      const logs = logData.logs ?? logData;
+      const total = logData.total ?? logs.length;
+
+      render(logs, total, sensors, motors);
+      document.getElementById('lastUpdated').textContent =
+        'Last updated: ' + new Date().toLocaleTimeString('az-AZ', { timeZone:'Asia/Baku' });
+    } catch(e) {
+      document.getElementById('lastUpdated').textContent = 'Failed to load — ' + e.message;
+    }
+    document.getElementById('refreshBtn').classList.remove('spinning');
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const BAKU_OFFSET = 4 * 60; // minutes
+
+  function toBaku(ts) {
+    return new Date(new Date(ts).getTime() + BAKU_OFFSET * 60000);
+  }
+
+  function dayLabel(d) {
+    return d.toISOString().slice(0,10);
+  }
+
+  function last7Days() {
+    return Array.from({length:7}, (_,i) => {
+      const d = new Date();
+      d.setUTCMinutes(d.getUTCMinutes() + BAKU_OFFSET);
+      d.setUTCDate(d.getUTCDate() - (6 - i));
+      return d.toISOString().slice(0,10);
+    });
+  }
+
+  function shortCode(code) { return (code ?? '?').slice(0,10); }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render(logs, total, sensors, motors) {
+    const now = Date.now();
+    const cutoff7d = now - 7 * 24 * 60 * 60 * 1000;
+    const logs7d = logs.filter(l => new Date(l.timestamp).getTime() > cutoff7d);
+
+    // ── Stats ──────────────────────────────────────────────────────────────
+    const starts7d   = logs7d.filter(l => ['started','auto_started'].includes(l.event)).length;
+    const totalEvts  = logs7d.length;
+    const successes  = logs7d.filter(l => l.success).length;
+    const safety7d   = logs7d.filter(l => l.event === 'safety_timeout').length;
+    const activeNow  = motors.filter(m => m.isActive).length;
+    const onlineSens = sensors.filter(s => s.isActive !== false).length;
+
+    set('s-starts',  starts7d);
+    set('s-rate',    totalEvts ? Math.round(successes / totalEvts * 100) + '%' : '—');
+    set('s-active',  activeNow);
+    set('s-active-sub', `of ${motors.length} motors`);
+    set('s-online',  onlineSens);
+    set('s-online-sub', `of ${sensors.length} sensors`);
+    set('s-safety',  safety7d);
+    set('s-total',   total);
+
+    // ── Activity chart (starts + completions per day) ──────────────────────
+    const days = last7Days();
+    const dayLabels = days.map(d => {
+      const dt = new Date(d);
+      return dt.toLocaleDateString('en', { weekday:'short', day:'numeric' });
+    });
+
+    const startsPerDay     = days.map(d => logs7d.filter(l => dayLabel(toBaku(l.timestamp)) === d && ['started','auto_started'].includes(l.event)).length);
+    const completedPerDay  = days.map(d => logs7d.filter(l => dayLabel(toBaku(l.timestamp)) === d && ['completed','auto_stopped'].includes(l.event)).length);
+
+    mkChart('chartActivity', 'bar', {
+      labels: dayLabels,
+      datasets: [
+        { label:'Started',   data: startsPerDay,    backgroundColor:'rgba(33,108,60,0.75)', borderRadius:4, borderSkipped:false },
+        { label:'Completed', data: completedPerDay, backgroundColor:'rgba(76,175,116,0.5)', borderRadius:4, borderSkipped:false },
+      ]
+    }, { plugins:{ legend:{ labels:{ boxWidth:12, font:{size:11} } } }, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1, font:{size:11}}, grid:{color:'#f0f4f0'} }, x:{ ticks:{font:{size:11}}, grid:{display:false} } } });
+
+    // ── Event types doughnut ───────────────────────────────────────────────
+    const typeMap = {};
+    logs.forEach(l => { typeMap[l.event] = (typeMap[l.event] ?? 0) + 1; });
+    const typeLabels = Object.keys(typeMap).map(labelFor);
+    const typeData   = Object.values(typeMap);
+    const typeColors = Object.keys(typeMap).map(colorFor);
+
+    mkChart('chartTypes', 'doughnut', {
+      labels: typeLabels,
+      datasets:[{ data: typeData, backgroundColor: typeColors, borderWidth:2, borderColor:'#fff' }]
+    }, { cutout:'62%', plugins:{ legend:{ position:'right', labels:{ boxWidth:11, font:{size:11}, padding:10 } } } });
+
+    // ── Motor table ────────────────────────────────────────────────────────
+    const motorRows = motors.map(m => {
+      const mLogs7d = logs7d.filter(l => l.motorId === m.id || l.deviceCode === m.deviceCode);
+      const mStarts = mLogs7d.filter(l => ['started','auto_started'].includes(l.event)).length;
+      const mFails  = mLogs7d.filter(l => !l.success).length;
+      const mHours  = typeof m.activeTimeHours === 'number' ? m.activeTimeHours : '—';
+      const maxH    = motors.reduce((acc,x) => Math.max(acc, x.activeTimeHours ?? 0), 0);
+      const pct     = maxH > 0 && typeof mHours === 'number' ? Math.round(mHours / maxH * 100) : 0;
+
+      const modePill = {
+        manual:    '<span class="pill pill-grey">Manual</span>',
+        scheduled: '<span class="pill pill-amber">Scheduled</span>',
+        auto:      '<span class="pill pill-blue">Auto</span>',
+      }[m.mode] ?? '<span class="pill pill-grey">—</span>';
+
+      const statusPill = m.isActive
+        ? '<span class="pill pill-green">● Active</span>'
+        : '<span class="pill pill-grey">Idle</span>';
+
+      return `<tr>
+        <td><span class="code">${shortCode(m.deviceCode)}</span></td>
+        <td>${modePill}</td>
+        <td>${statusPill}</td>
+        <td>${mStarts}</td>
+        <td>${mFails > 0 ? `<span style="color:var(--red);font-weight:600">${mFails}</span>` : '0'}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="bar-wrap" style="flex:1;"><div class="bar-fill" style="width:${pct}%"></div></div>
+            <span style="font-size:11px;font-family:var(--mono);color:var(--sub);white-space:nowrap;">${mHours}h</span>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    document.getElementById('motorTableBody').innerHTML =
+      motorRows.length ? motorRows.join('') : '<tr><td colspan="6" class="empty">No motors found</td></tr>';
+
+    // ── Sensor grid ────────────────────────────────────────────────────────
+    const sensorTiles = sensors.map(s => {
+      const m = s.soilMoisture ?? null;
+      const isOnline = s.isActive !== false;
+      const mClass = m == null ? '' : m < 20 ? 'dry' : m > 70 ? 'wet' : 'ok';
+      const mText  = m != null ? `${m}%` : '—';
+      const extras = [
+        s.temperature != null ? `${s.temperature}°C` : null,
+        s.ph          != null ? `pH ${s.ph}`         : null,
+        s.batteryLevel!= null ? `🔋${s.batteryLevel}%` : null,
+      ].filter(Boolean).join(' · ');
+
+      return `<div class="sensor-tile${isOnline ? '' : ' offline'}">
+        <div class="sensor-name">${shortCode(s.deviceCode)}</div>
+        <div class="sensor-moisture ${mClass}">${mText}</div>
+        <div class="sensor-status ${isOnline ? 'online' : 'offline'}">${isOnline ? '● Online' : '● Offline'}</div>
+        ${extras ? `<div class="sensor-extras">${extras}</div>` : ''}
+      </div>`;
+    });
+
+    document.getElementById('sensorGrid').innerHTML =
+      sensorTiles.length ? sensorTiles.join('') : '<div class="empty">No sensors</div>';
+
+    // ── Starts per motor bar ───────────────────────────────────────────────
+    const motorLabels  = motors.map(m => shortCode(m.deviceCode));
+    const motorStarts  = motors.map(m => logs7d.filter(l => (l.motorId === m.id || l.deviceCode === m.deviceCode) && ['started','auto_started'].includes(l.event)).length);
+    const motorColors  = motors.map(m => m.mode === 'auto' ? 'rgba(29,78,216,0.7)' : m.mode === 'scheduled' ? 'rgba(217,119,6,0.7)' : 'rgba(33,108,60,0.7)');
+
+    mkChart('chartMotorStarts', 'bar', {
+      labels: motorLabels,
+      datasets:[{ label:'Starts', data: motorStarts, backgroundColor: motorColors, borderRadius:5, borderSkipped:false }]
+    }, { indexAxis:'y', plugins:{ legend:{display:false} }, scales:{ x:{ beginAtZero:true, ticks:{stepSize:1,font:{size:11}}, grid:{color:'#f0f4f0'} }, y:{ ticks:{font:{size:11,family:'JetBrains Mono'}}, grid:{display:false} } } });
+
+    // ── Hourly pattern ─────────────────────────────────────────────────────
+    const hourCounts = Array(24).fill(0);
+    logs7d.filter(l => ['started','auto_started'].includes(l.event)).forEach(l => {
+      const h = toBaku(l.timestamp).getUTCHours();
+      hourCounts[h]++;
+    });
+    const hourLabels = Array.from({length:24}, (_,i) => i === 0 ? '12am' : i < 12 ? `${i}am` : i === 12 ? '12pm' : `${i-12}pm`);
+
+    mkChart('chartHours', 'bar', {
+      labels: hourLabels,
+      datasets:[{
+        label:'Starts',
+        data: hourCounts,
+        backgroundColor: hourCounts.map(v => v === Math.max(...hourCounts) && v > 0 ? 'rgba(33,108,60,0.85)' : 'rgba(33,108,60,0.35)'),
+        borderRadius:3, borderSkipped:false,
+      }]
+    }, { plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, ticks:{stepSize:1,font:{size:10}}, grid:{color:'#f0f4f0'} }, x:{ ticks:{font:{size:9},maxRotation:0}, grid:{display:false} } } });
+  }
+
+  // ── Chart helper ──────────────────────────────────────────────────────────
+  function mkChart(id, type, data, opts) {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), {
+      type,
+      data,
+      options: { responsive:true, maintainAspectRatio:false, animation:{duration:400}, ...opts }
+    });
+  }
+
+  // ── Label / color maps ────────────────────────────────────────────────────
+  function labelFor(e) {
+    return { started:'Started', completed:'Completed', auto_started:'Auto ON',
+             auto_stopped:'Auto OFF', auto_timeout:'Auto Timeout',
+             safety_timeout:'Safety Stop', skipped_stale_sensor:'Skipped' }[e] ?? e;
+  }
+  function colorFor(e) {
+    return { started:'#ca8a04', completed:'#4caf74', auto_started:'#3b82f6',
+             auto_stopped:'#94a3b8', auto_timeout:'#ea580c',
+             safety_timeout:'#dc2626', skipped_stale_sensor:'#7c3aed' }[e] ?? '#cbd5e1';
+  }
+
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  loadAll();
+  setInterval(loadAll, 60_000);
+</script>
+</body>
+</html>

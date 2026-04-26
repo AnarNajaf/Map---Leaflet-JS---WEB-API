@@ -375,6 +375,8 @@ async function saveMotor(motorData) {
     const createdMotor = await response.json();
 
     addMotorMarker(createdMotor);
+    renderMotorSidebar?.();
+    renderAlerts?.();
 
     showActionMessage("Motor saved successfully!");
     resetToolSelection();

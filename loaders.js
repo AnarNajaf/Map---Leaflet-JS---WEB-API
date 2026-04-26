@@ -17,10 +17,10 @@ function buildSensorPopup(sensor) {
     <h4>Sensor Info</h4>
     <div class="popup-actions">
       <button class="action-btn edit" onclick="editSensor('${sensor.id}')" title="Edit">
-        <img src="../images/edit.png" alt="Edit">
+        <img src="images/edit.png" alt="Edit">
       </button>
       <button class="action-btn delete" onclick="deleteSensor('${sensor.id}')" title="Delete">
-        <img src="../images/delete.png" alt="Delete">
+        <img src="images/delete.png" alt="Delete">
       </button>
     </div>
   </div>
@@ -142,6 +142,7 @@ function attachRealtimeSensorListener(sensor) {
         sensorObj.data.isActive = isOnline;
         sensorObj.data.batteryLevel = live.batteryLevel ?? sensorObj.data.batteryLevel;
         sensorObj.data.soilMoisture = live.soilMoisture ?? sensorObj.data.soilMoisture;
+        sensorObj.data._fbReady = true; // marks that Firebase has sent at least one snapshot
       }
 
       renderSensorSidebar?.();
@@ -221,6 +222,7 @@ function attachRealtimeMotorListener(motor) {
         motorObj.data.checking = checking;
       }
 
+      renderMotorSidebar?.();
       renderAlerts?.();
     },
     (error) => console.error("Realtime Motor Firestore error:", error),
@@ -441,10 +443,10 @@ function buildMotorPopup(motor) {
     <h4>Motor Info</h4>
     <div class="popup-actions">
       <button class="action-btn edit" onclick="editMotor('${motor.id}')" title="Edit">
-        <img src="../images/edit.png" alt="Edit">
+        <img src="images/edit.png" alt="Edit">
       </button>
       <button class="action-btn delete" onclick="deleteMotor('${motor.id}')" title="Delete">
-        <img src="../images/delete.png" alt="Delete">
+        <img src="images/delete.png" alt="Delete">
       </button>
     </div>
   </div>
@@ -798,9 +800,15 @@ async function performDeleteMotor(motorId) {
 
     const motorObj = motorMarkers.find((m) => m.id === motorId);
     if (motorObj) {
+      // Stop Firebase real-time listener if active
+      if (motorUnsubscribers[motorId]) {
+        motorUnsubscribers[motorId]();
+        delete motorUnsubscribers[motorId];
+      }
       map.removeLayer(motorObj.marker);
       motorMarkers = motorMarkers.filter((m) => m.id !== motorId);
       renderMotorSidebar?.();
+      renderAlerts?.();
     }
 
     showActionMessage("Motor deleted successfully!");
@@ -1083,6 +1091,7 @@ function openAutoConfigPanel(motorId) {
   // Wire buttons
   document.getElementById('autoCancelBtn').onclick = () => {
     document.getElementById('autoModal').classList.add('hidden');
+    delete _pendingAutoConfigs[_autoModalMotorId];
     _autoModalMotorId = null;
   };
   document.getElementById('autoSaveBtn').onclick = () => saveAutoConfig(motorId);
@@ -1322,8 +1331,8 @@ function renderAlerts() {
     const d = s.data;
     const label = (d.deviceCode ?? d.id ?? '?').slice(0, 12);
 
-    // Offline
-    if (d.isActive === false) {
+    // Offline — only check after Firebase has sent at least one snapshot to avoid false alerts on load
+    if (d._fbReady && d.isActive === false) {
       alerts.push({
         sev: 'critical', icon: '📡',
         title: `${label} offline`,
